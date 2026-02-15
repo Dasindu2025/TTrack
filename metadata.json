@@ -1,0 +1,5 @@
+{
+  "name": "TyoTrack",
+  "description": "Enterprise-grade multi-tenant time management application with role-based access, approval workflows, and advanced time calculation logic.",
+  "requestFramePermissions": []
+}
