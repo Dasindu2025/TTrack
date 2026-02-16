@@ -1,11 +1,11 @@
 
 import React, { useEffect, useState } from 'react';
 import { Layout } from '../components/Layout';
-import { api } from '../services/mockDb';
+import { api } from '../services/api';
 import { Project, Workspace } from '../types';
 import { Button } from '../components/ui/Button';
 import { toast } from 'sonner';
-import { Folder, Plus, Archive, PlayCircle, X, Search } from 'lucide-react';
+import { Folder, Plus, Archive, PlayCircle, X, Building2 } from 'lucide-react';
 import { cn } from '../lib/utils';
 
 export const Projects = () => {
@@ -13,6 +13,8 @@ export const Projects = () => {
   const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isWorkspaceModalOpen, setIsWorkspaceModalOpen] = useState(false);
+  const [newWorkspaceName, setNewWorkspaceName] = useState('');
   
   // Form State
   const [newProject, setNewProject] = useState({
@@ -26,17 +28,15 @@ export const Projects = () => {
   const loadData = async () => {
     setLoading(true);
     try {
-      const [ps, ws] = await Promise.all([
-        api.getAllCompanyProjects(user.companyId),
-        api.getWorkspaces(user.companyId)
-      ]);
+      const ws = await api.getWorkspaces(user.companyId);
+      const ps = await api.getAllCompanyProjects(user.companyId);
       setProjects(ps);
       setWorkspaces(ws);
       if (ws.length > 0) {
         setNewProject(prev => ({ ...prev, workspaceId: ws[0].id }));
       }
-    } catch (e) {
-      toast.error('Failed to load projects');
+    } catch (e: any) {
+      toast.error(e.message || 'Failed to load projects');
     } finally {
       setLoading(false);
     }
@@ -48,6 +48,10 @@ export const Projects = () => {
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!newProject.workspaceId) {
+      toast.error('Create or select a workspace first');
+      return;
+    }
     try {
       await api.createProject(newProject.workspaceId, newProject.name, newProject.color);
       toast.success('Project created successfully');
@@ -56,6 +60,20 @@ export const Projects = () => {
       loadData();
     } catch (e) {
       toast.error('Failed to create project');
+    }
+  };
+
+  const handleCreateWorkspace = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      const workspace = await api.createWorkspace(user.companyId, newWorkspaceName);
+      toast.success('Workspace created successfully');
+      setIsWorkspaceModalOpen(false);
+      setNewWorkspaceName('');
+      setNewProject(prev => ({ ...prev, workspaceId: workspace.id }));
+      loadData();
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to create workspace');
     }
   };
 
@@ -76,13 +94,19 @@ export const Projects = () => {
             <h1 className="text-3xl font-bold text-white">Project Management</h1>
             <p className="text-slate-400">Control work categories and assignments.</p>
           </div>
-          <Button onClick={() => setIsModalOpen(true)} className="gap-2">
-            <Plus className="w-4 h-4" />
-            New Project
-          </Button>
+          <div className="flex flex-col sm:flex-row gap-2">
+            <Button variant="outline" onClick={() => setIsWorkspaceModalOpen(true)} className="gap-2">
+              <Building2 className="w-4 h-4" />
+              New Workspace
+            </Button>
+            <Button onClick={() => setIsModalOpen(true)} className="gap-2">
+              <Plus className="w-4 h-4" />
+              New Project
+            </Button>
+          </div>
         </header>
 
-        <div className="bg-slate-900 border border-slate-800 rounded-xl shadow-sm overflow-hidden">
+        <div className="glass-surface panel-lift rounded-xl shadow-sm overflow-hidden">
            <div className="overflow-x-auto">
             <table className="w-full text-left text-sm">
               <thead className="bg-slate-800/50 border-b border-slate-800 text-xs uppercase text-slate-400 font-semibold">
@@ -168,9 +192,14 @@ export const Projects = () => {
                     className="w-full bg-slate-950 border border-slate-700 rounded-lg p-2.5 text-white focus:ring-2 focus:ring-accent outline-none"
                     value={newProject.workspaceId}
                     onChange={e => setNewProject({...newProject, workspaceId: e.target.value})}
+                    disabled={workspaces.length === 0}
                  >
+                   {workspaces.length === 0 && <option value="">No workspace available</option>}
                    {workspaces.map(w => <option key={w.id} value={w.id}>{w.name}</option>)}
                  </select>
+                 {workspaces.length === 0 && (
+                  <p className="text-xs text-amber-400 mt-1">Create a workspace first.</p>
+                 )}
               </div>
               <div>
                 <label className="block text-sm font-medium text-slate-300 mb-1">Color Marker</label>
@@ -190,6 +219,34 @@ export const Projects = () => {
                 </div>
               </div>
               <Button type="submit" className="w-full mt-2">Create Project</Button>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {isWorkspaceModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm">
+          <div className="bg-slate-900 rounded-xl shadow-xl w-full max-w-sm p-6 relative border border-slate-800">
+            <button
+              onClick={() => setIsWorkspaceModalOpen(false)}
+              className="absolute top-4 right-4 text-slate-500 hover:text-slate-300"
+            >
+              <X className="w-5 h-5" />
+            </button>
+            <h3 className="text-xl font-bold text-white mb-6">Create Workspace</h3>
+            <form onSubmit={handleCreateWorkspace} className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-slate-300 mb-1">Workspace Name</label>
+                <input
+                  type="text"
+                  required
+                  minLength={2}
+                  className="w-full bg-slate-950 border border-slate-700 rounded-lg p-2.5 text-white focus:ring-2 focus:ring-accent outline-none"
+                  value={newWorkspaceName}
+                  onChange={e => setNewWorkspaceName(e.target.value)}
+                />
+              </div>
+              <Button type="submit" className="w-full mt-2">Create Workspace</Button>
             </form>
           </div>
         </div>

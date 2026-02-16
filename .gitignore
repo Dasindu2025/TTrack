@@ -8,8 +8,11 @@ pnpm-debug.log*
 lerna-debug.log*
 
 node_modules
+backend/node_modules
 dist
 dist-ssr
+backend/.next
+coverage
 *.local
 
 # Editor directories and files
@@ -22,3 +25,7 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Local auth artifacts
+admin_cookies.txt
+emp_cookies.txt

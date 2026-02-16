@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Layout } from '../components/Layout';
-import { api } from '../services/mockDb';
+import { api } from '../services/api';
 import { TimeEntry, EntryStatus, User } from '../types';
 import { Button } from '../components/ui/Button';
 import { Check, X, Search, Clock, Calendar } from 'lucide-react';
@@ -73,7 +73,7 @@ export const Approvals = () => {
           </div>
         </header>
 
-        <div className="bg-slate-900 border border-slate-800 rounded-xl shadow-sm overflow-hidden">
+        <div className="glass-surface panel-lift rounded-xl shadow-sm overflow-hidden">
           {entries.length === 0 ? (
             <div className="p-16 text-center text-slate-500 flex flex-col items-center">
               <div className="w-16 h-16 bg-slate-800 rounded-full flex items-center justify-center mb-4 text-slate-600">

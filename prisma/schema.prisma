@@ -1,0 +1,209 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  SUPER_ADMIN
+  COMPANY_ADMIN
+  EMPLOYEE
+}
+
+enum UserStatus {
+  ACTIVE
+  SUSPENDED
+}
+
+enum RecordStatus {
+  ACTIVE
+  ARCHIVED
+}
+
+enum EntryStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+model Company {
+  id         String       @id @default(cuid())
+  tenantId   String       @unique @map("tenant_id")
+  name       String
+  email      String       @unique
+  timezone   String       @default("Europe/Helsinki")
+  status     RecordStatus @default(ACTIVE)
+  createdAt  DateTime     @default(now()) @map("created_at")
+  updatedAt  DateTime     @updatedAt @map("updated_at")
+  users      User[]
+  projects   Project[]
+  workspaces Workspace[]
+  policies   Policy[]
+  timeEntries TimeEntry[]
+  splits     TimeEntrySplit[]
+  auditLogs  AuditLog[]
+
+  @@index([status, createdAt])
+  @@map("companies")
+}
+
+model Workspace {
+  id        String       @id @default(cuid())
+  tenantId  String       @map("tenant_id")
+  company   Company      @relation(fields: [tenantId], references: [tenantId], onDelete: Restrict)
+  name      String
+  status    RecordStatus @default(ACTIVE)
+  createdAt DateTime     @default(now()) @map("created_at")
+  updatedAt DateTime     @updatedAt @map("updated_at")
+  projects  Project[]
+  entries   TimeEntry[]
+
+  @@index([tenantId, status])
+  @@map("workspaces")
+}
+
+model User {
+  id                String           @id @default(cuid())
+  tenantId          String?          @map("tenant_id")
+  company           Company?         @relation(fields: [tenantId], references: [tenantId], onDelete: SetNull)
+  name              String
+  email             String           @unique
+  passwordHash      String           @map("password_hash")
+  role              UserRole
+  status            UserStatus       @default(ACTIVE)
+  backdateLimitDays Int              @default(7) @map("backdate_limit_days")
+  createdAt         DateTime         @default(now()) @map("created_at")
+  updatedAt         DateTime         @updatedAt @map("updated_at")
+  timeEntries       TimeEntry[]      @relation("TimeEntryOwner")
+  splitEntries      TimeEntrySplit[] @relation("TimeEntrySplitOwner")
+  approvedSplits    TimeEntrySplit[] @relation("TimeEntryApprover")
+  createdEntries    TimeEntry[]      @relation("TimeEntryCreator")
+  auditLogs         AuditLog[]       @relation("AuditUser")
+
+  @@index([tenantId, role, status])
+  @@map("users")
+}
+
+model Policy {
+  id           String   @id @default(cuid())
+  tenantId     String   @map("tenant_id")
+  company      Company  @relation(fields: [tenantId], references: [tenantId], onDelete: Restrict)
+  eveningStart String   @default("18:00") @map("evening_start")
+  eveningEnd   String   @default("22:00") @map("evening_end")
+  nightStart   String   @default("22:00") @map("night_start")
+  nightEnd     String   @default("06:00") @map("night_end")
+  isActive     Boolean  @default(true) @map("is_active")
+  effectiveFrom DateTime @default(now()) @map("effective_from")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  @@index([tenantId, isActive])
+  @@map("policies")
+}
+
+model Project {
+  id         String       @id @default(cuid())
+  tenantId   String       @map("tenant_id")
+  company    Company      @relation(fields: [tenantId], references: [tenantId], onDelete: Restrict)
+  name       String
+  color      String
+  status     RecordStatus @default(ACTIVE)
+  workspaceId String?     @map("workspace_id")
+  workspace   Workspace?  @relation(fields: [workspaceId], references: [id], onDelete: SetNull)
+  createdAt  DateTime     @default(now()) @map("created_at")
+  updatedAt  DateTime     @updatedAt @map("updated_at")
+  entries    TimeEntry[]
+  splits     TimeEntrySplit[]
+
+  @@index([tenantId, status])
+  @@index([tenantId, workspaceId, status])
+  @@map("projects")
+}
+
+model TimeEntry {
+  id             String         @id @default(cuid())
+  tenantId       String         @map("tenant_id")
+  company        Company        @relation(fields: [tenantId], references: [tenantId], onDelete: Restrict)
+  userId         String         @map("user_id")
+  user           User           @relation("TimeEntryOwner", fields: [userId], references: [id], onDelete: Restrict)
+  createdById    String?        @map("created_by_id")
+  createdBy      User?          @relation("TimeEntryCreator", fields: [createdById], references: [id], onDelete: SetNull)
+  projectId      String         @map("project_id")
+  project        Project        @relation(fields: [projectId], references: [id], onDelete: Restrict)
+  workspaceId    String?        @map("workspace_id")
+  workspace      Workspace?     @relation(fields: [workspaceId], references: [id], onDelete: SetNull)
+  startTime      DateTime       @map("start_time")
+  endTime        DateTime       @map("end_time")
+  status         EntryStatus    @default(PENDING)
+  notes          String?
+  rejectionReason String?       @map("rejection_reason")
+  totalHours     Float          @default(0) @map("total_hours")
+  eveningHours   Float          @default(0) @map("evening_hours")
+  nightHours     Float          @default(0) @map("night_hours")
+  lockedAt       DateTime?      @map("locked_at")
+  submittedAt    DateTime       @default(now()) @map("submitted_at")
+  createdAt      DateTime       @default(now()) @map("created_at")
+  updatedAt      DateTime       @updatedAt @map("updated_at")
+  splits         TimeEntrySplit[]
+
+  @@index([tenantId, submittedAt])
+  @@index([tenantId, userId, submittedAt])
+  @@index([tenantId, status, submittedAt])
+  @@index([tenantId, workspaceId, submittedAt])
+  @@map("time_entries")
+}
+
+model TimeEntrySplit {
+  id              String      @id @default(cuid())
+  tenantId        String      @map("tenant_id")
+  company         Company     @relation(fields: [tenantId], references: [tenantId], onDelete: Restrict)
+  timeEntryId     String      @map("time_entry_id")
+  timeEntry       TimeEntry   @relation(fields: [timeEntryId], references: [id], onDelete: Cascade)
+  userId          String      @map("user_id")
+  user            User        @relation("TimeEntrySplitOwner", fields: [userId], references: [id], onDelete: Restrict)
+  projectId       String      @map("project_id")
+  project         Project     @relation(fields: [projectId], references: [id], onDelete: Restrict)
+  date            DateTime
+  localDate       String      @map("local_date")
+  startTime       DateTime    @map("start_time")
+  endTime         DateTime    @map("end_time")
+  status          EntryStatus @default(PENDING)
+  totalHours      Float       @default(0) @map("total_hours")
+  eveningHours    Float       @default(0) @map("evening_hours")
+  nightHours      Float       @default(0) @map("night_hours")
+  notes           String?
+  approvedById    String?     @map("approved_by_id")
+  approvedBy      User?       @relation("TimeEntryApprover", fields: [approvedById], references: [id], onDelete: SetNull)
+  approvedAt      DateTime?   @map("approved_at")
+  rejectionReason String?     @map("rejection_reason")
+  createdAt       DateTime    @default(now()) @map("created_at")
+  updatedAt       DateTime    @updatedAt @map("updated_at")
+
+  @@index([tenantId, date])
+  @@index([tenantId, localDate])
+  @@index([tenantId, userId, localDate])
+  @@index([tenantId, status, localDate])
+  @@map("time_entry_splits")
+}
+
+model AuditLog {
+  id        String    @id @default(cuid())
+  tenantId  String    @map("tenant_id")
+  company   Company   @relation(fields: [tenantId], references: [tenantId], onDelete: Restrict)
+  userId    String?   @map("user_id")
+  user      User?     @relation("AuditUser", fields: [userId], references: [id], onDelete: SetNull)
+  action    String
+  entity    String
+  entityId  String?   @map("entity_id")
+  details   Json?
+  ipAddress String?   @map("ip_address")
+  userAgent String?   @map("user_agent")
+  createdAt DateTime  @default(now()) @map("created_at")
+
+  @@index([tenantId, createdAt])
+  @@index([tenantId, action, createdAt])
+  @@map("audit_logs")
+}

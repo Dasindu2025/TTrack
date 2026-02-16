@@ -1,7 +1,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { Layout } from '../components/Layout';
-import { api } from '../services/mockDb';
+import { api } from '../services/api';
 import { User } from '../types';
 import { Button } from '../components/ui/Button';
 import { toast } from 'sonner';
@@ -89,7 +89,7 @@ export const Employees = () => {
           </Button>
         </header>
 
-        <div className="bg-slate-900 border border-slate-800 rounded-xl shadow-sm overflow-hidden">
+        <div className="glass-surface panel-lift rounded-xl shadow-sm overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full text-left text-sm">
               <thead className="bg-slate-800/50 border-b border-slate-800 text-xs uppercase text-slate-400 font-semibold">
@@ -209,7 +209,7 @@ export const Employees = () => {
                   <input 
                     type="password" 
                     required 
-                    placeholder="••••••••" 
+                    placeholder="********" 
                     className="w-full bg-slate-950 border border-slate-700 rounded-lg p-2.5 pl-9 text-white focus:ring-2 focus:ring-blue-500 outline-none" 
                     value={newEmployee.password} 
                     onChange={e => setNewEmployee({...newEmployee, password: e.target.value})} 

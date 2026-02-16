@@ -1,0 +1,150 @@
+:root {
+  --bg-0: #020617;
+  --bg-1: #0b1220;
+  --bg-2: #111b2f;
+  --text-0: #e2e8f0;
+  --text-1: #94a3b8;
+  --accent-0: #38bdf8;
+  --accent-1: #6366f1;
+  --accent-2: #22d3ee;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  color: var(--text-0);
+  background:
+    radial-gradient(1000px 500px at -15% -10%, rgba(56, 189, 248, 0.18), transparent 55%),
+    radial-gradient(900px 500px at 110% -20%, rgba(99, 102, 241, 0.2), transparent 55%),
+    radial-gradient(850px 520px at 50% 120%, rgba(34, 211, 238, 0.12), transparent 60%),
+    linear-gradient(155deg, var(--bg-0) 0%, var(--bg-1) 48%, var(--bg-2) 100%);
+  background-attachment: fixed;
+}
+
+::selection {
+  background: rgba(56, 189, 248, 0.28);
+  color: #f8fafc;
+}
+
+.ambient-grid {
+  background-image:
+    linear-gradient(to right, rgba(148, 163, 184, 0.06) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(148, 163, 184, 0.06) 1px, transparent 1px);
+  background-size: 30px 30px;
+  mask-image: radial-gradient(circle at center, black 38%, transparent 100%);
+}
+
+.float-orb {
+  animation: orbit-float 12s ease-in-out infinite;
+}
+
+.float-orb.delay {
+  animation-delay: -4s;
+}
+
+.float-orb.slow {
+  animation-duration: 18s;
+}
+
+.glass-surface {
+  background:
+    linear-gradient(155deg, rgba(15, 23, 42, 0.72), rgba(2, 6, 23, 0.86));
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  box-shadow:
+    0 24px 60px rgba(2, 6, 23, 0.45),
+    inset 0 1px 0 rgba(255, 255, 255, 0.07);
+  backdrop-filter: blur(12px);
+}
+
+.panel-lift {
+  transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
+}
+
+.panel-lift:hover {
+  transform: translateY(-2px);
+  border-color: rgba(56, 189, 248, 0.38);
+  box-shadow:
+    0 30px 70px rgba(2, 6, 23, 0.55),
+    0 0 0 1px rgba(56, 189, 248, 0.2),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+
+.accent-text {
+  background: linear-gradient(95deg, var(--accent-2), var(--accent-0), var(--accent-1));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.soft-ring {
+  box-shadow:
+    0 0 0 1px rgba(148, 163, 184, 0.15),
+    0 10px 25px rgba(2, 6, 23, 0.35);
+}
+
+input[class*="bg-slate-950"],
+select[class*="bg-slate-950"],
+textarea[class*="bg-slate-950"] {
+  background: rgba(3, 10, 24, 0.8);
+  border-color: rgba(100, 116, 139, 0.35);
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+}
+
+input[class*="bg-slate-950"]:focus,
+select[class*="bg-slate-950"]:focus,
+textarea[class*="bg-slate-950"]:focus {
+  border-color: rgba(56, 189, 248, 0.7);
+  box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.16);
+  background: rgba(7, 15, 31, 0.9);
+}
+
+[class*="bg-slate-900"][class*="border-slate-800"] {
+  border-color: rgba(148, 163, 184, 0.18) !important;
+}
+
+@keyframes orbit-float {
+  0% {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  50% {
+    transform: translate3d(0, -20px, 0) scale(1.04);
+  }
+  100% {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+}
+
+@media (max-width: 1024px) {
+  .max-w-7xl,
+  .max-w-6xl {
+    max-width: 100% !important;
+  }
+}
+
+@media (max-width: 768px) {
+  .glass-surface {
+    border-radius: 1rem;
+  }
+
+  .overflow-x-auto > table {
+    min-width: 720px;
+  }
+
+  table th,
+  table td {
+    padding: 0.65rem 0.75rem !important;
+  }
+}
+
+@media (max-width: 640px) {
+  body {
+    background-attachment: scroll;
+  }
+
+  .panel-lift:hover {
+    transform: none;
+  }
+}

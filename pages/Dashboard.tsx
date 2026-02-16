@@ -1,12 +1,13 @@
 
 import React, { useEffect, useState } from 'react';
 import { Layout } from '../components/Layout';
-import { api } from '../services/mockDb';
+import { api } from '../services/api';
 import { TimeEntry, EntryStatus, Workspace, Project, UserRole, User } from '../types';
 import { Clock, Moon, Sun, CheckCircle, ChevronLeft, ChevronRight, X, Plus, Building2, Users, FileText, Check, Activity, PieChart, Folder } from 'lucide-react';
-import { cn, getGreeting, formatTime, formatDate } from '../lib/utils';
+import { cn, getGreeting, formatTime, formatDate, isValid24HourTime } from '../lib/utils';
 import { motion } from 'framer-motion';
 import { Button } from '../components/ui/Button';
+import { Time24Input } from '../components/ui/Time24Input';
 import { toast } from 'sonner';
 
 // --- Components ---
@@ -91,6 +92,12 @@ export const Dashboard = () => {
 
   const fetchData = async () => {
     try {
+      if (!user.companyId && user.role === UserRole.SUPER_ADMIN) {
+        setEntries([]);
+        setLoading(false);
+        return;
+      }
+
       const data = await api.getTimeEntries(isEmployee ? user.id : undefined, user.companyId!);
       setEntries(data);
       
@@ -180,6 +187,14 @@ export const Dashboard = () => {
     if (!selectedDate) return;
     setIsSubmitting(true);
     try {
+      if (!formData.workspaceId || !formData.projectId) {
+        throw new Error("Please select workspace and project.");
+      }
+
+      if (!isValid24HourTime(formData.startTime) || !isValid24HourTime(formData.endTime)) {
+        throw new Error("Time must be in 24-hour format (HH:mm).");
+      }
+
       const [sh, sm] = formData.startTime.split(':');
       const [eh, em] = formData.endTime.split(':');
       
@@ -191,6 +206,10 @@ export const Dashboard = () => {
       
       if (end < start) {
         end.setDate(end.getDate() + 1);
+      }
+
+      if (end.getTime() === start.getTime()) {
+        throw new Error("End time must be after start time.");
       }
 
       const now = new Date();
@@ -319,7 +338,7 @@ export const Dashboard = () => {
             
             {/* DETAILS PANEL (Left on Desktop, Bottom on Mobile) */}
             <div className="w-full md:w-96 shrink-0 order-2 md:order-1 flex flex-col gap-4">
-              <div className="bg-slate-900 border border-slate-800 rounded-2xl shadow-xl overflow-hidden flex flex-col min-h-[500px] h-full">
+              <div className="glass-surface panel-lift rounded-2xl shadow-xl overflow-hidden flex flex-col min-h-[500px] h-full">
                 
                 {/* Header */}
                 <div className="p-6 border-b border-slate-800 bg-slate-950/50">
@@ -379,77 +398,18 @@ export const Dashboard = () => {
                   )}
                 </div>
 
-                {/* Footer / Add Form */}
+                {/* Footer / Popup Trigger */}
                 <div className="p-4 border-t border-slate-800 bg-slate-950/30">
-                  {!showAddForm ? (
-                    <Button 
-                      onClick={() => setShowAddForm(true)} 
-                      className="w-full py-3 border-2 border-dashed border-slate-700 bg-transparent hover:bg-slate-800 text-slate-400 hover:text-white flex items-center justify-center gap-2"
-                    >
-                      <Plus className="w-5 h-5" />
-                      Add New Entry
-                    </Button>
-                  ) : (
-                    <form onSubmit={handleCreateEntry} className="space-y-4 animate-in slide-in-from-bottom-2 fade-in">
-                      <div className="flex justify-between items-center">
-                        <h4 className="font-semibold text-white text-sm">New Entry</h4>
-                        <button type="button" onClick={() => setShowAddForm(false)} className="text-slate-500 hover:text-slate-300">
-                          <X className="w-4 h-4" />
-                        </button>
-                      </div>
-
-                      <div className="space-y-3">
-                        <select 
-                          className="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-sm text-white focus:ring-2 focus:ring-indigo-500 outline-none"
-                          value={formData.workspaceId}
-                          onChange={(e) => handleWorkspaceChange(e.target.value)}
-                          required
-                        >
-                           <option value="">Select Workspace</option>
-                           {workspaces.map(w => <option key={w.id} value={w.id}>{w.name}</option>)}
-                        </select>
-
-                        <select 
-                          className="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-sm text-white focus:ring-2 focus:ring-indigo-500 outline-none"
-                          value={formData.projectId}
-                          onChange={(e) => setFormData({...formData, projectId: e.target.value})}
-                          required
-                        >
-                           <option value="">Select Project</option>
-                           {projects.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
-                        </select>
-
-                        <div className="grid grid-cols-2 gap-2">
-                          <input 
-                            type="time" 
-                            className="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-sm text-white focus:ring-2 focus:ring-indigo-500 outline-none"
-                            value={formData.startTime}
-                            onChange={(e) => setFormData({...formData, startTime: e.target.value})}
-                            required
-                          />
-                          <input 
-                            type="time" 
-                            className="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-sm text-white focus:ring-2 focus:ring-indigo-500 outline-none"
-                            value={formData.endTime}
-                            onChange={(e) => setFormData({...formData, endTime: e.target.value})}
-                            required
-                          />
-                        </div>
-
-                        <textarea 
-                           className="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-sm text-white focus:ring-2 focus:ring-indigo-500 outline-none placeholder:text-slate-600"
-                           rows={2}
-                           placeholder="Notes..."
-                           value={formData.notes}
-                           onChange={(e) => setFormData({...formData, notes: e.target.value})}
-                        />
-                      </div>
-
-                      <Button type="submit" className="w-full bg-indigo-600 hover:bg-indigo-500 text-white" isLoading={isSubmitting}>
-                        Submit
-                      </Button>
-                    </form>
-                  )}
+                  <Button 
+                    onClick={() => setShowAddForm(true)} 
+                    className="w-full py-3 border-2 border-dashed border-slate-700 bg-transparent hover:bg-slate-800 text-slate-400 hover:text-white flex items-center justify-center gap-2"
+                  >
+                    <Plus className="w-5 h-5" />
+                    Add New Entry
+                  </Button>
+                  <p className="text-[11px] text-slate-500 mt-2 text-center">
+                    Entry form uses 24-hour format (HH:mm).
+                  </p>
                 </div>
               </div>
             </div>
@@ -521,6 +481,100 @@ export const Dashboard = () => {
 
                 <StatusLegend />
               </div>
+            </div>
+          </div>
+        )}
+
+        {isEmployee && showAddForm && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm">
+            <div className="bg-slate-900 rounded-xl shadow-xl w-full max-w-lg p-6 relative animate-in fade-in zoom-in duration-200 border border-slate-800">
+              <button
+                onClick={() => setShowAddForm(false)}
+                className="absolute top-4 right-4 text-slate-500 hover:text-slate-300"
+                aria-label="Close"
+              >
+                <X className="w-5 h-5" />
+              </button>
+
+              <h3 className="text-xl font-bold mb-1 text-white">Add Time Entry</h3>
+              <p className="text-sm text-slate-400 mb-6">{formatDate(selectedDate)} (24h format)</p>
+
+              <form onSubmit={handleCreateEntry} className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-slate-300 mb-1">Workspace</label>
+                  <select
+                    className="w-full rounded-lg border-slate-700 bg-slate-950 border p-2 text-sm focus:ring-2 focus:ring-accent text-slate-200"
+                    value={formData.workspaceId}
+                    onChange={(e) => handleWorkspaceChange(e.target.value)}
+                    required
+                  >
+                    <option value="">Select Workspace</option>
+                    {workspaces.map((workspace) => (
+                      <option key={workspace.id} value={workspace.id}>
+                        {workspace.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-slate-300 mb-1">Project</label>
+                  <select
+                    className="w-full rounded-lg border-slate-700 bg-slate-950 border p-2 text-sm focus:ring-2 focus:ring-accent text-slate-200"
+                    value={formData.projectId}
+                    onChange={(e) => setFormData({ ...formData, projectId: e.target.value })}
+                    required
+                  >
+                    <option value="">Select Project</option>
+                    {projects.map((project) => (
+                      <option key={project.id} value={project.id}>
+                        {project.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-slate-300 mb-1">Start (HH:mm)</label>
+                    <Time24Input
+                      className="w-full rounded-lg border-slate-700 bg-slate-950 border p-2 text-sm text-slate-200"
+                      value={formData.startTime}
+                      onChange={(value) => setFormData({ ...formData, startTime: value })}
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-slate-300 mb-1">End (HH:mm)</label>
+                    <Time24Input
+                      className="w-full rounded-lg border-slate-700 bg-slate-950 border p-2 text-sm text-slate-200"
+                      value={formData.endTime}
+                      onChange={(value) => setFormData({ ...formData, endTime: value })}
+                      required
+                    />
+                    <p className="text-[10px] text-slate-500 mt-1">Ends next day if less than start.</p>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-slate-300 mb-1">Notes (Optional)</label>
+                  <textarea
+                    className="w-full rounded-lg border-slate-700 bg-slate-950 border p-2 text-sm text-slate-200"
+                    rows={3}
+                    value={formData.notes}
+                    onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                  />
+                </div>
+
+                <div className="flex flex-col sm:flex-row gap-3 pt-2">
+                  <Button type="button" variant="ghost" className="flex-1" onClick={() => setShowAddForm(false)}>
+                    Cancel
+                  </Button>
+                  <Button type="submit" className="flex-1" isLoading={isSubmitting}>
+                    Save Entry
+                  </Button>
+                </div>
+              </form>
             </div>
           </div>
         )}
@@ -620,7 +674,7 @@ export const Dashboard = () => {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                
                {/* Submission Status Breakdown */}
-               <div className="bg-slate-900 border border-slate-800 rounded-xl p-6 shadow-sm">
+               <div className="glass-surface panel-lift rounded-xl p-6 shadow-sm">
                   <h3 className="text-lg font-bold text-white mb-6 flex items-center gap-2">
                      <PieChart className="w-5 h-5 text-slate-400" />
                      Submission Status
@@ -647,7 +701,7 @@ export const Dashboard = () => {
                </div>
 
                {/* Weekly Trend (Mock) */}
-               <div className="md:col-span-2 bg-slate-900 border border-slate-800 rounded-xl p-6 shadow-sm">
+               <div className="md:col-span-2 glass-surface panel-lift rounded-xl p-6 shadow-sm">
                   <div className="flex justify-between items-center mb-6">
                     <h3 className="text-lg font-bold text-white">Weekly Activity Trend</h3>
                     <span className="text-xs text-slate-500 bg-slate-800 px-2 py-1 rounded">Last 7 Days</span>
@@ -666,7 +720,7 @@ export const Dashboard = () => {
             </div>
 
             {/* 3. Project Distribution (Lower Priority) */}
-            <div className="bg-slate-900 border border-slate-800 rounded-xl p-6 shadow-sm">
+            <div className="glass-surface panel-lift rounded-xl p-6 shadow-sm">
                <h3 className="text-lg font-bold text-white mb-6">Project Distribution</h3>
                <div className="space-y-4">
                   {[

@@ -36,12 +36,13 @@ export interface Workspace {
   id: string;
   name: string;
   companyId: string;
+  status?: 'ACTIVE' | 'ARCHIVED';
 }
 
 export interface Project {
   id: string;
   name: string;
-  workspaceId: string;
+  workspaceId?: string | null;
   color: string;
   status: 'ACTIVE' | 'ARCHIVED';
   totalHoursLogged?: number;
@@ -50,7 +51,7 @@ export interface Project {
 export interface TimeEntry {
   id: string;
   userId: string;
-  workspaceId: string;
+  workspaceId?: string;
   projectId: string;
   startTime: string; // ISO String
   endTime: string;   // ISO String

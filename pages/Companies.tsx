@@ -1,7 +1,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { Layout } from '../components/Layout';
-import { api } from '../services/mockDb';
+import { api } from '../services/api';
 import { Company, User } from '../types';
 import { Button } from '../components/ui/Button';
 import { toast } from 'sonner';
@@ -101,7 +101,7 @@ export const Companies = () => {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {companies.map(company => (
-              <div key={company.id} className="bg-slate-900 border border-slate-800 rounded-xl p-6 shadow-sm hover:border-slate-700 transition-colors flex flex-col h-full">
+              <div key={company.id} className="glass-surface panel-lift rounded-xl p-6 shadow-sm hover:border-slate-700 transition-colors flex flex-col h-full">
                 
                 {/* Header */}
                 <div className="flex items-start justify-between mb-4">
@@ -222,7 +222,7 @@ export const Companies = () => {
                   <input 
                     type="password" 
                     required 
-                    placeholder="••••••••" 
+                    placeholder="********" 
                     className="w-full bg-slate-950 border border-slate-700 rounded-lg p-2.5 pl-9 text-white focus:ring-2 focus:ring-purple-500 outline-none" 
                     value={newCompany.password} 
                     onChange={e => setNewCompany({...newCompany, password: e.target.value})} 
@@ -262,7 +262,7 @@ export const Companies = () => {
               </div>
               <div>
                 <label className="block text-sm font-medium text-slate-400 mb-1">Password</label>
-                <input type="password" required placeholder="••••••••" className="w-full bg-slate-950 border border-slate-700 rounded-lg p-2.5 text-white focus:ring-2 focus:ring-blue-500 outline-none" value={newAdmin.password} onChange={e => setNewAdmin({...newAdmin, password: e.target.value})} />
+                <input type="password" required placeholder="********" className="w-full bg-slate-950 border border-slate-700 rounded-lg p-2.5 text-white focus:ring-2 focus:ring-blue-500 outline-none" value={newAdmin.password} onChange={e => setNewAdmin({...newAdmin, password: e.target.value})} />
               </div>
               <Button type="submit" className="w-full mt-4">Assign Admin</Button>
             </form>

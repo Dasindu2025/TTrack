@@ -1,9 +1,9 @@
 
 import React, { useEffect, useState } from 'react';
 import { Layout } from '../components/Layout';
-import { api } from '../services/mockDb';
+import { api } from '../services/api';
 import { AuditLog } from '../types';
-import { cn } from '../lib/utils';
+import { cn, formatDateTime24 } from '../lib/utils';
 import { ShieldAlert, Search } from 'lucide-react';
 
 export const AuditLogs = () => {
@@ -46,7 +46,7 @@ export const AuditLogs = () => {
           </div>
         </header>
 
-        <div className="bg-slate-900 border border-slate-800 rounded-xl shadow-sm overflow-hidden">
+        <div className="glass-surface panel-lift rounded-xl shadow-sm overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full text-left text-sm">
               <thead className="bg-slate-800/50 border-b border-slate-800 text-xs uppercase text-slate-400 font-semibold">
@@ -62,7 +62,7 @@ export const AuditLogs = () => {
                 {filteredLogs.map(log => (
                   <tr key={log.id} className="hover:bg-slate-800/30 transition-colors">
                     <td className="px-6 py-4 font-mono text-xs text-slate-500">
-                      {new Date(log.timestamp).toLocaleString('en-FI', { timeZone: 'Europe/Helsinki' })}
+                      {formatDateTime24(log.timestamp)}
                     </td>
                     <td className="px-6 py-4 font-medium text-white">{log.userName}</td>
                     <td className="px-6 py-4">

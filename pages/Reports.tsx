@@ -1,7 +1,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { Layout } from '../components/Layout';
-import { api } from '../services/mockDb';
+import { api } from '../services/api';
 import { TimeEntry, Project, Workspace, EntryStatus, User } from '../types';
 import { cn, formatDate, formatTime } from '../lib/utils';
 import { Calendar, Table2, Download } from 'lucide-react';
@@ -77,20 +77,20 @@ export const Reports = () => {
               Export CSV
             </Button>
 
-            <div className="flex items-center gap-2 bg-slate-900 border border-slate-800 rounded-lg px-3 py-1.5 h-10">
+            <div className="flex flex-wrap sm:flex-nowrap items-center gap-2 glass-surface panel-lift rounded-lg px-3 py-1.5 h-auto sm:h-10">
                <Calendar className="w-4 h-4 text-slate-400" />
                <input 
                 type="date" 
                 value={dateRange.start}
                 onChange={(e) => setDateRange(prev => ({ ...prev, start: e.target.value }))}
-                className="bg-transparent text-sm text-white focus:outline-none w-28"
+                className="bg-transparent text-sm text-white focus:outline-none w-full sm:w-28"
                />
                <span className="text-slate-500">-</span>
                <input 
                 type="date" 
                 value={dateRange.end}
                 onChange={(e) => setDateRange(prev => ({ ...prev, end: e.target.value }))}
-                className="bg-transparent text-sm text-white focus:outline-none w-28"
+                className="bg-transparent text-sm text-white focus:outline-none w-full sm:w-28"
                />
             </div>
           </div>
@@ -117,7 +117,7 @@ export const Reports = () => {
         </div>
 
         {/* --- DETAILED VIEW (Single View) --- */}
-        <div className="bg-slate-900 border border-slate-800 rounded-xl shadow-sm overflow-hidden">
+        <div className="glass-surface panel-lift rounded-xl shadow-sm overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full text-left text-sm">
               <thead className="bg-slate-800/50 border-b border-slate-800 text-xs uppercase text-slate-400 font-semibold">

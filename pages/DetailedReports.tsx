@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { Layout } from '../components/Layout';
-import { api } from '../services/mockDb';
+import { api } from '../services/api';
 import { TimeEntry, Project, User, EntryStatus, UserRole } from '../types';
 import { Button } from '../components/ui/Button';
 import { Download, Calendar, Briefcase, Filter, Moon, Sun } from 'lucide-react';
-import { formatDate, formatTime, cn } from '../lib/utils';
+import { formatDate, formatTime, formatDateTime24, cn } from '../lib/utils';
 import { toast } from 'sonner';
 
 export const DetailedReports = () => {
@@ -73,12 +73,12 @@ export const DetailedReports = () => {
         </header>
 
         {/* Filters Bar */}
-        <div className="bg-slate-900 border border-slate-800 rounded-xl p-4 mb-6 shadow-sm">
+        <div className="glass-surface panel-lift rounded-xl p-4 mb-6 shadow-sm">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             {/* Date Range */}
             <div className="md:col-span-2 flex flex-col gap-1">
               <label className="text-xs font-semibold text-slate-500 uppercase">Date Range</label>
-              <div className="flex items-center gap-2">
+              <div className="flex flex-col sm:flex-row sm:items-center gap-2">
                 <div className="relative flex-1">
                    <Calendar className="absolute left-2.5 top-2.5 w-4 h-4 text-slate-500" />
                    <input 
@@ -88,7 +88,7 @@ export const DetailedReports = () => {
                     className="w-full bg-slate-950 border border-slate-700 rounded-lg py-2 pl-9 pr-2 text-sm text-white focus:ring-2 focus:ring-accent outline-none"
                    />
                 </div>
-                <span className="text-slate-600">-</span>
+                <span className="text-slate-600 text-center">-</span>
                 <div className="relative flex-1">
                    <Calendar className="absolute left-2.5 top-2.5 w-4 h-4 text-slate-500" />
                    <input 
@@ -140,7 +140,7 @@ export const DetailedReports = () => {
         </div>
 
         {/* Data Table */}
-        <div className="bg-slate-900 border border-slate-800 rounded-xl shadow-sm overflow-hidden">
+        <div className="glass-surface panel-lift rounded-xl shadow-sm overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full text-left text-sm">
               <thead className="bg-slate-800/50 border-b border-slate-800 text-xs uppercase text-slate-400 font-semibold">
@@ -206,7 +206,7 @@ export const DetailedReports = () => {
           
           <div className="bg-slate-800/30 p-4 border-t border-slate-800 flex justify-between items-center text-xs text-slate-500">
             <span>Showing {filteredEntries.length} entries</span>
-            <span>Generated at {new Date().toLocaleTimeString()}</span>
+            <span>Generated at {formatDateTime24(new Date())}</span>
           </div>
         </div>
       </div>

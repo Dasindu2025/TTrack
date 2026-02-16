@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Layout } from '../components/Layout';
-import { api } from '../services/mockDb';
+import { api } from '../services/api';
 import { Button } from '../components/ui/Button';
 import { Lock, Shield, User } from 'lucide-react';
 import { toast } from 'sonner';
@@ -49,7 +49,7 @@ export const Settings = () => {
         </header>
 
         {/* Profile Card */}
-        <div className="bg-slate-900 border border-slate-800 rounded-xl p-6 mb-6 shadow-sm">
+        <div className="glass-surface panel-lift rounded-xl p-6 mb-6 shadow-sm">
           <div className="flex items-center gap-4 mb-6">
             <div className="w-16 h-16 bg-slate-800 rounded-full flex items-center justify-center text-slate-500">
                <User className="w-8 h-8" />
@@ -65,7 +65,7 @@ export const Settings = () => {
         </div>
 
         {/* Security / Password Card */}
-        <div className="bg-slate-900 border border-slate-800 rounded-xl p-6 shadow-sm">
+        <div className="glass-surface panel-lift rounded-xl p-6 shadow-sm">
           <div className="flex items-center gap-3 mb-6 border-b border-slate-800 pb-4">
             <div className="p-2 bg-blue-500/10 rounded-lg text-blue-400">
               <Shield className="w-5 h-5" />
@@ -86,7 +86,7 @@ export const Settings = () => {
                   className="w-full bg-slate-950 border border-slate-700 rounded-lg py-2 pl-10 pr-4 text-white focus:ring-2 focus:ring-accent outline-none"
                   value={currentPassword}
                   onChange={(e) => setCurrentPassword(e.target.value)}
-                  placeholder="••••••••"
+                  placeholder="********"
                   required
                 />
               </div>
@@ -102,7 +102,7 @@ export const Settings = () => {
                     className="w-full bg-slate-950 border border-slate-700 rounded-lg py-2 pl-10 pr-4 text-white focus:ring-2 focus:ring-accent outline-none"
                     value={newPassword}
                     onChange={(e) => setNewPassword(e.target.value)}
-                    placeholder="••••••••"
+                    placeholder="********"
                     required
                   />
                 </div>
@@ -116,7 +116,7 @@ export const Settings = () => {
                     className="w-full bg-slate-950 border border-slate-700 rounded-lg py-2 pl-10 pr-4 text-white focus:ring-2 focus:ring-accent outline-none"
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
-                    placeholder="••••••••"
+                    placeholder="********"
                     required
                   />
                 </div>

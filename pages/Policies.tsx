@@ -1,11 +1,13 @@
 
 import React, { useEffect, useState } from 'react';
 import { Layout } from '../components/Layout';
-import { api } from '../services/mockDb';
+import { api } from '../services/api';
 import { Company } from '../types';
 import { Button } from '../components/ui/Button';
+import { Time24Input } from '../components/ui/Time24Input';
 import { toast } from 'sonner';
 import { Clock, ShieldCheck, AlertTriangle } from 'lucide-react';
+import { isValid24HourTime } from '../lib/utils';
 
 export const Policies = () => {
   const [company, setCompany] = useState<Company | null>(null);
@@ -46,6 +48,15 @@ export const Policies = () => {
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!company) return;
+    if (
+      !isValid24HourTime(form.eveningStart) ||
+      !isValid24HourTime(form.eveningEnd) ||
+      !isValid24HourTime(form.nightStart) ||
+      !isValid24HourTime(form.nightEnd)
+    ) {
+      toast.error('All policy times must be in 24-hour HH:mm format');
+      return;
+    }
     try {
       await api.updateCompanyPolicy(company.id, form, user.name);
       toast.success('Policies updated successfully');
@@ -69,7 +80,7 @@ export const Policies = () => {
           
           {/* Main Config Form */}
           <div className="md:col-span-2 space-y-6">
-            <div className="bg-slate-900 border border-slate-800 rounded-xl p-6 shadow-sm">
+            <div className="glass-surface panel-lift rounded-xl p-6 shadow-sm">
               <div className="flex items-center gap-3 mb-6 pb-4 border-b border-slate-800">
                 <div className="p-2 bg-blue-500/10 rounded-lg text-blue-400">
                   <Clock className="w-5 h-5" />
@@ -87,21 +98,21 @@ export const Policies = () => {
                    </h4>
                    <div className="grid grid-cols-2 gap-4">
                      <div>
-                       <label className="block text-xs font-medium text-slate-500 mb-1">Start Time</label>
-                       <input 
-                         type="time" 
+                       <label className="block text-xs font-medium text-slate-500 mb-1">Start Time (HH:mm)</label>
+                       <Time24Input
                          className="w-full bg-slate-950 border border-slate-700 rounded-lg p-2.5 text-white"
                          value={form.eveningStart}
-                         onChange={e => setForm({...form, eveningStart: e.target.value})}
+                         onChange={(value) => setForm({...form, eveningStart: value})}
+                         required
                        />
                      </div>
                      <div>
-                       <label className="block text-xs font-medium text-slate-500 mb-1">End Time</label>
-                       <input 
-                         type="time" 
+                       <label className="block text-xs font-medium text-slate-500 mb-1">End Time (HH:mm)</label>
+                       <Time24Input
                          className="w-full bg-slate-950 border border-slate-700 rounded-lg p-2.5 text-white"
                          value={form.eveningEnd}
-                         onChange={e => setForm({...form, eveningEnd: e.target.value})}
+                         onChange={(value) => setForm({...form, eveningEnd: value})}
+                         required
                        />
                      </div>
                    </div>
@@ -113,23 +124,23 @@ export const Policies = () => {
                    </h4>
                    <div className="grid grid-cols-2 gap-4">
                      <div>
-                       <label className="block text-xs font-medium text-slate-500 mb-1">Start Time</label>
-                       <input 
-                         type="time" 
+                       <label className="block text-xs font-medium text-slate-500 mb-1">Start Time (HH:mm)</label>
+                       <Time24Input
                          className="w-full bg-slate-950 border border-slate-700 rounded-lg p-2.5 text-white"
                          value={form.nightStart}
-                         onChange={e => setForm({...form, nightStart: e.target.value})}
+                         onChange={(value) => setForm({...form, nightStart: value})}
+                         required
                        />
                      </div>
                      <div>
-                       <label className="block text-xs font-medium text-slate-500 mb-1">End Time</label>
-                       <input 
-                         type="time" 
+                       <label className="block text-xs font-medium text-slate-500 mb-1">End Time (HH:mm)</label>
+                       <Time24Input
                          className="w-full bg-slate-950 border border-slate-700 rounded-lg p-2.5 text-white"
                          value={form.nightEnd}
-                         onChange={e => setForm({...form, nightEnd: e.target.value})}
+                         onChange={(value) => setForm({...form, nightEnd: value})}
+                         required
                        />
-                       <p className="text-[10px] text-slate-500 mt-1">Times crossing midnight are automatically handled.</p>
+                       <p className="text-[10px] text-slate-500 mt-1">Times crossing midnight are automatically handled in 24-hour format.</p>
                      </div>
                    </div>
                 </div>
@@ -143,7 +154,7 @@ export const Policies = () => {
 
           {/* Info Side Panel */}
           <div className="space-y-6">
-             <div className="bg-slate-900 border border-slate-800 rounded-xl p-6">
+             <div className="glass-surface panel-lift rounded-xl p-6">
                 <div className="flex items-center gap-2 mb-4 text-emerald-400 font-semibold text-sm">
                   <ShieldCheck className="w-4 h-4" />
                   Active Policy

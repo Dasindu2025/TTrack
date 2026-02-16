@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { Layout } from '../components/Layout';
-import { api } from '../services/mockDb';
+import { api } from '../services/api';
 import { Project, Workspace, TimeEntry } from '../types';
 import { Button } from '../components/ui/Button';
+import { Time24Input } from '../components/ui/Time24Input';
 import { toast } from 'sonner';
 import { Plus, X, ChevronLeft, ChevronRight } from 'lucide-react';
-import { formatTime, formatDate, cn } from '../lib/utils';
+import { formatTime, formatDate, cn, isValid24HourTime } from '../lib/utils';
 
 export const Calendar = () => {
   const [currentDate, setCurrentDate] = useState(new Date());
@@ -56,6 +57,14 @@ export const Calendar = () => {
     if (!selectedDate) return;
     setIsSubmitting(true);
     try {
+      if (!formData.workspaceId || !formData.projectId) {
+        throw new Error("Please select workspace and project.");
+      }
+
+      if (!isValid24HourTime(formData.startTime) || !isValid24HourTime(formData.endTime)) {
+        throw new Error("Time must be in 24-hour format (HH:mm).");
+      }
+
       // Construct Date Objects
       const [sh, sm] = formData.startTime.split(':');
       const [eh, em] = formData.endTime.split(':');
@@ -69,6 +78,10 @@ export const Calendar = () => {
       // Handle overnight end (if end time < start time, assume next day)
       if (end < start) {
         end.setDate(end.getDate() + 1);
+      }
+
+      if (end.getTime() === start.getTime()) {
+        throw new Error("End time must be after start time.");
       }
 
       await api.createTimeEntry(user.id, formData.workspaceId, formData.projectId, start, end, formData.notes);
@@ -173,7 +186,7 @@ export const Calendar = () => {
             </button>
             
             <h3 className="text-xl font-bold mb-1 text-white">Add Time Entry</h3>
-            <p className="text-sm text-slate-400 mb-6">{formatDate(selectedDate)}</p>
+            <p className="text-sm text-slate-400 mb-6">{formatDate(selectedDate)} (24h format)</p>
             
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
@@ -205,21 +218,19 @@ export const Calendar = () => {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-slate-300 mb-1">Start</label>
-                  <input 
-                    type="time" 
+                  <Time24Input
                     className="w-full rounded-lg border-slate-700 bg-slate-950 border p-2 text-sm text-slate-200"
                     value={formData.startTime}
-                    onChange={(e) => setFormData({...formData, startTime: e.target.value})}
+                    onChange={(value) => setFormData({...formData, startTime: value})}
                     required
                   />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-slate-300 mb-1">End</label>
-                  <input 
-                    type="time" 
+                  <Time24Input
                     className="w-full rounded-lg border-slate-700 bg-slate-950 border p-2 text-sm text-slate-200"
                     value={formData.endTime}
-                    onChange={(e) => setFormData({...formData, endTime: e.target.value})}
+                    onChange={(value) => setFormData({...formData, endTime: value})}
                     required
                   />
                   <p className="text-[10px] text-slate-500 mt-1">Ends next day if &lt; Start</p>
