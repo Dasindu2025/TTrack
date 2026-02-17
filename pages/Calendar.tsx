@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Layout } from '../components/Layout';
 import { api } from '../services/api';
-import { Project, Workspace, TimeEntry } from '../types';
+import { Project, Workspace, TimeEntry, EntryStatus } from '../types';
 import { Button } from '../components/ui/Button';
 import { Time24Input } from '../components/ui/Time24Input';
 import { toast } from 'sonner';
@@ -13,6 +13,7 @@ export const Calendar = () => {
   const [entries, setEntries] = useState<TimeEntry[]>([]);
   const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
   const [projects, setProjects] = useState<Project[]>([]);
+  const [allProjects, setAllProjects] = useState<Project[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   
@@ -28,11 +29,24 @@ export const Calendar = () => {
 
   const user = JSON.parse(localStorage.getItem('tyo_user') || '{}');
 
+  const projectNameById = useMemo(
+    () =>
+      allProjects.reduce((acc, project) => {
+        acc[project.id] = project.name;
+        return acc;
+      }, {} as Record<string, string>),
+    [allProjects]
+  );
+
+  const getProjectName = (projectId: string) => projectNameById[projectId] ?? "Unknown Project";
+
   // Fetch Data
   useEffect(() => {
     const load = async () => {
       const w = await api.getWorkspaces(user.companyId);
+      const allCompanyProjects = await api.getAllCompanyProjects(user.companyId);
       setWorkspaces(w);
+      setAllProjects(allCompanyProjects);
       // Pre-fetch first workspace projects for simplicity
       if (w.length > 0) {
         const p = await api.getProjects(w[0].id);
@@ -136,6 +150,9 @@ export const Calendar = () => {
           
           const dateStr = date.toISOString().split('T')[0];
           const dayEntries = entries.filter(e => e.date === dateStr);
+          const approvedHours = dayEntries
+            .filter((entry) => entry.status === EntryStatus.APPROVED)
+            .reduce((sum, entry) => sum + entry.totalHours, 0);
           const isToday = new Date().toDateString() === date.toDateString();
 
           return (
@@ -154,6 +171,11 @@ export const Calendar = () => {
                 )}>
                   {date.getDate()}
                 </span>
+                {dayEntries.length > 0 && (
+                  <span className="text-[11px] font-extrabold text-emerald-300">
+                    {approvedHours.toFixed(1)}h
+                  </span>
+                )}
                 <button 
                   onClick={(e) => { e.stopPropagation(); openModal(date); }}
                   className="opacity-0 group-hover:opacity-100 p-1 hover:bg-slate-700 rounded transition-all"
@@ -165,7 +187,7 @@ export const Calendar = () => {
               <div className="mt-1 space-y-1 overflow-y-auto flex-1 custom-scrollbar">
                 {dayEntries.map(e => (
                   <div key={e.id} className="text-xs bg-blue-900/40 text-blue-200 p-1 rounded truncate border-l-2 border-blue-500">
-                    {formatTime(e.startTime)} - {e.projectId}
+                    {formatTime(e.startTime)} - {getProjectName(e.projectId)}
                   </div>
                 ))}
               </div>

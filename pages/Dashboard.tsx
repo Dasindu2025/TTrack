@@ -1,5 +1,5 @@
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Layout } from '../components/Layout';
 import { api } from '../services/api';
 import { TimeEntry, EntryStatus, Workspace, Project, UserRole, User } from '../types';
@@ -67,6 +67,7 @@ export const Dashboard = () => {
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
   const [projects, setProjects] = useState<Project[]>([]);
+  const [allProjects, setAllProjects] = useState<Project[]>([]);
   const [showAddForm, setShowAddForm] = useState(false);
   const [companyName, setCompanyName] = useState('');
 
@@ -100,9 +101,15 @@ export const Dashboard = () => {
 
       const data = await api.getTimeEntries(isEmployee ? user.id : undefined, user.companyId!);
       setEntries(data);
-      
+
+      let companyProjectList: Project[] = [];
       if (user.companyId) {
-        const company = await api.getCompany(user.companyId);
+        const [company, projectsForCompany] = await Promise.all([
+          api.getCompany(user.companyId),
+          api.getAllCompanyProjects(user.companyId)
+        ]);
+        companyProjectList = projectsForCompany;
+        setAllProjects(projectsForCompany);
         if (company) setCompanyName(company.name);
       }
 
@@ -117,10 +124,7 @@ export const Dashboard = () => {
       }
 
       if (isAdmin) {
-        const [empList, projectList] = await Promise.all([
-          api.getEmployees(user.companyId),
-          api.getAllCompanyProjects(user.companyId)
-        ]);
+        const empList = await api.getEmployees(user.companyId);
         
         const empMap = empList.reduce((acc, curr) => ({ ...acc, [curr.id]: curr }), {} as Record<string, User>);
         const pending = data.filter(e => e.status === EntryStatus.PENDING);
@@ -135,7 +139,7 @@ export const Dashboard = () => {
 
         setAdminStats({
           activeEmployees: empList.length,
-          activeProjects: projectList.filter(p => p.status === 'ACTIVE').length,
+          activeProjects: companyProjectList.filter(p => p.status === 'ACTIVE').length,
           pendingApprovals: pending.length,
           totalHoursMonth: monthlyHours,
           pendingEntriesList: pending.sort((a,b) => new Date(b.startTime).getTime() - new Date(a.startTime).getTime()).slice(0, 5),
@@ -279,6 +283,20 @@ export const Dashboard = () => {
   };
 
   const selectedDayEntries = entries.filter(e => e.date === selectedDate.toISOString().split('T')[0]);
+  const selectedDayApprovedHours = selectedDayEntries
+    .filter((entry) => entry.status === EntryStatus.APPROVED)
+    .reduce((sum, entry) => sum + entry.totalHours, 0);
+
+  const projectNameById = useMemo(
+    () =>
+      allProjects.reduce((acc, project) => {
+        acc[project.id] = project.name;
+        return acc;
+      }, {} as Record<string, string>),
+    [allProjects]
+  );
+
+  const getProjectName = (projectId: string) => projectNameById[projectId] ?? "Unknown Project";
 
   return (
     <Layout>
@@ -346,6 +364,9 @@ export const Dashboard = () => {
                   <p className="text-slate-400 text-sm mt-1">
                     Daily Total: <span className="text-white font-mono">{selectedDayEntries.reduce((a,b) => a + b.totalHours, 0).toFixed(2)}h</span>
                   </p>
+                  <p className="text-slate-400 text-sm">
+                    Approved: <span className="text-emerald-300 font-extrabold">{selectedDayApprovedHours.toFixed(2)}h</span>
+                  </p>
                 </div>
 
                 {/* Content */}
@@ -370,7 +391,7 @@ export const Dashboard = () => {
                           <span className="text-white font-bold text-lg">{entry.totalHours.toFixed(2)}h</span>
                         </div>
                         
-                        <p className="text-slate-200 font-medium text-sm mb-1">{entry.projectId}</p>
+                        <p className="text-slate-100 font-semibold text-sm mb-1">{getProjectName(entry.projectId)}</p>
                         
                         <div className="flex items-center gap-2 text-xs text-slate-500 font-mono mb-2">
                           <Clock className="w-3 h-3" />
@@ -445,7 +466,9 @@ export const Dashboard = () => {
 
                     const dateStr = date.toISOString().split('T')[0];
                     const dayEntries = entries.filter(e => e.date === dateStr);
-                    const totalHours = dayEntries.reduce((sum, e) => sum + e.totalHours, 0);
+                    const approvedHours = dayEntries
+                      .filter((entry) => entry.status === EntryStatus.APPROVED)
+                      .reduce((sum, entry) => sum + entry.totalHours, 0);
                     const statusClass = getDayStatus(dayEntries);
                     const isSelected = selectedDate.toDateString() === date.toDateString();
                     const isToday = new Date().toDateString() === date.toDateString();
@@ -469,10 +492,10 @@ export const Dashboard = () => {
                           )}
                         </button>
                         <span className={cn(
-                          "text-[10px] mt-1 font-mono transition-opacity hidden sm:block", 
-                          totalHours > 0 ? "opacity-100 text-slate-400" : "opacity-0"
+                          "text-[11px] mt-1 font-extrabold leading-none tracking-wide", 
+                          dayEntries.length === 0 ? "text-transparent" : approvedHours > 0 ? "text-emerald-300" : "text-slate-500"
                         )}>
-                          {totalHours.toFixed(1)}h
+                          {dayEntries.length === 0 ? "0.0h" : `${approvedHours.toFixed(1)}h`}
                         </span>
                       </div>
                     );
@@ -642,7 +665,7 @@ export const Dashboard = () => {
                                        <td className="px-6 py-4 font-mono text-slate-400">{formatDate(entry.date)}</td>
                                        <td className="px-6 py-4">
                                           <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-900/20 text-blue-300 border border-blue-900/30">
-                                             {entry.projectId}
+                                             {getProjectName(entry.projectId)}
                                           </span>
                                        </td>
                                        <td className="px-6 py-4 font-bold text-white">{entry.totalHours.toFixed(2)}h</td>

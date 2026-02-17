@@ -6,17 +6,22 @@ import { toast } from 'sonner';
 import { Button } from '../components/ui/Button';
 import { motion } from 'framer-motion';
 
+const TEST_ROLE_CREDENTIALS = {
+  EMPLOYEE: { email: 'bob@acme.com', password: 'password123' },
+  COMPANY_ADMIN: { email: 'alice@acme.com', password: 'password123' },
+  SUPER_ADMIN: { email: 'super@tyo.com', password: 'password123' },
+} as const;
+
 export const Login = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
 
-  const handleLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const performLogin = async (loginEmail: string, loginPassword: string) => {
     setIsLoading(true);
     try {
-      const user = await api.login(email, password);
+      const user = await api.login(loginEmail, loginPassword);
       localStorage.setItem('tyo_user', JSON.stringify(user));
       toast.success(`Welcome back, ${user.name}`);
 
@@ -30,6 +35,19 @@ export const Login = () => {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    await performLogin(email, password);
+  };
+
+  const handleRoleLogin = async (role: keyof typeof TEST_ROLE_CREDENTIALS) => {
+    if (isLoading) return;
+    const credentials = TEST_ROLE_CREDENTIALS[role];
+    setEmail(credentials.email);
+    setPassword(credentials.password);
+    await performLogin(credentials.email, credentials.password);
   };
 
   return (
@@ -106,22 +124,28 @@ export const Login = () => {
           </form>
 
           <div className="mt-8 pt-6 border-t border-white/10">
-            <p className="text-xs text-center text-slate-400 mb-4 uppercase tracking-[0.12em]">Demo Credentials</p>
+            <p className="text-xs text-center text-slate-400 mb-4 uppercase tracking-[0.12em]">Role Test Login</p>
             <div className="grid grid-cols-3 gap-2">
               <button
-                onClick={() => { setEmail('bob@acme.com'); setPassword('password123'); }}
+                type="button"
+                onClick={() => handleRoleLogin('EMPLOYEE')}
+                disabled={isLoading}
                 className="p-2.5 bg-slate-800/70 hover:bg-slate-700/80 border border-slate-600/40 rounded-xl text-xs text-slate-200 transition-all"
               >
                 Employee
               </button>
               <button
-                onClick={() => { setEmail('alice@acme.com'); setPassword('password123'); }}
+                type="button"
+                onClick={() => handleRoleLogin('COMPANY_ADMIN')}
+                disabled={isLoading}
                 className="p-2.5 bg-slate-800/70 hover:bg-slate-700/80 border border-slate-600/40 rounded-xl text-xs text-slate-200 transition-all"
               >
                 Admin
               </button>
               <button
-                onClick={() => { setEmail('super@tyo.com'); setPassword('password123'); }}
+                type="button"
+                onClick={() => handleRoleLogin('SUPER_ADMIN')}
+                disabled={isLoading}
                 className="p-2.5 bg-indigo-900/30 hover:bg-indigo-800/35 border border-indigo-400/35 rounded-xl text-xs text-indigo-100 transition-all text-center flex flex-col items-center justify-center gap-1"
               >
                 <ShieldCheck className="w-3 h-3" />
