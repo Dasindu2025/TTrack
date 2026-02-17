@@ -1,4 +1,4 @@
-import { EntryStatus, Company, Project, TimeEntry, User, Workspace } from "../types";
+import { EntryStatus, Company, Project, TimeEntry, User, UserRole, Workspace } from "../types";
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "";
 
@@ -92,6 +92,13 @@ export const api = {
     return request<User>("/api/auth/login", {
       method: "POST",
       body: { email, password }
+    });
+  },
+
+  loginAsRole: async (role: UserRole): Promise<User> => {
+    return request<User>("/api/auth/login", {
+      method: "POST",
+      body: { testRole: role }
     });
   },
 

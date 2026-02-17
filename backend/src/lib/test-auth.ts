@@ -25,6 +25,8 @@ const TEST_ACCOUNTS: Record<string, { name: string; role: UserRole; tenantId: st
   }
 };
 
+const TEST_ROLE_ORDER: UserRole[] = ["SUPER_ADMIN", "COMPANY_ADMIN", "EMPLOYEE"];
+
 function isTestLoginEnabled(): boolean {
   return process.env.ENABLE_TEST_LOGIN !== "false";
 }
@@ -35,6 +37,10 @@ function testPassword(): string {
 
 function normalizeEmail(email: string): string {
   return email.toLowerCase().trim();
+}
+
+function isSupportedRole(role: string): role is UserRole {
+  return TEST_ROLE_ORDER.includes(role as UserRole);
 }
 
 async function ensureDemoTenant(tx: Prisma.TransactionClient): Promise<void> {
@@ -132,6 +138,29 @@ async function upsertTestUsers(tx: Prisma.TransactionClient, passwordHash: strin
   }
 }
 
+function testAccountByRole(role: UserRole): { email: string; name: string; role: UserRole; tenantId: string | null } | null {
+  const entry = Object.entries(TEST_ACCOUNTS).find(([, account]) => account.role === role);
+  if (!entry) {
+    return null;
+  }
+
+  const [email, account] = entry;
+  return {
+    email,
+    name: account.name,
+    role: account.role,
+    tenantId: account.tenantId
+  };
+}
+
+async function ensureTestFixtureUsers(prisma: PrismaClient): Promise<void> {
+  const passwordHash = await hashPassword(testPassword());
+  await prisma.$transaction(async (tx) => {
+    await ensureDemoTenant(tx);
+    await upsertTestUsers(tx, passwordHash);
+  });
+}
+
 export async function authenticateTestUser(
   prisma: PrismaClient,
   email: string,
@@ -150,15 +179,33 @@ export async function authenticateTestUser(
     return null;
   }
 
-  const passwordHash = await hashPassword(testPassword());
-
-  await prisma.$transaction(async (tx) => {
-    await ensureDemoTenant(tx);
-    await upsertTestUsers(tx, passwordHash);
-  });
+  await ensureTestFixtureUsers(prisma);
 
   return prisma.user.findUnique({
     where: { email: normalizedEmail }
   });
 }
 
+export async function authenticateTestRole(
+  prisma: PrismaClient,
+  role: string
+): Promise<User | null> {
+  if (!isTestLoginEnabled()) {
+    return null;
+  }
+
+  if (!isSupportedRole(role)) {
+    return null;
+  }
+
+  await ensureTestFixtureUsers(prisma);
+
+  const account = testAccountByRole(role);
+  if (!account) {
+    return null;
+  }
+
+  return prisma.user.findUnique({
+    where: { email: account.email }
+  });
+}

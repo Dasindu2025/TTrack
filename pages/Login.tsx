@@ -1,53 +1,64 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Clock, Lock, Mail, ArrowRight, ShieldCheck } from 'lucide-react';
+import { Clock, Lock, Mail, ArrowRight, ShieldCheck, Eye, EyeOff } from 'lucide-react';
 import { api } from '../services/api';
 import { toast } from 'sonner';
 import { Button } from '../components/ui/Button';
 import { motion } from 'framer-motion';
+import { User, UserRole } from '../types';
 
 const TEST_ROLE_CREDENTIALS = {
   EMPLOYEE: { email: 'bob@acme.com', password: 'password123' },
   COMPANY_ADMIN: { email: 'alice@acme.com', password: 'password123' },
   SUPER_ADMIN: { email: 'super@tyo.com', password: 'password123' },
-} as const;
+} as const satisfies Record<UserRole, { email: string; password: string }>;
 
 export const Login = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
 
-  const performLogin = async (loginEmail: string, loginPassword: string) => {
+  const completeLogin = (user: User) => {
+    localStorage.setItem('tyo_user', JSON.stringify(user));
+    toast.success(`Welcome back, ${user.name}`);
+
+    if (user.role === UserRole.SUPER_ADMIN) {
+      navigate('/companies');
+      return;
+    }
+
+    navigate('/dashboard');
+  };
+
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
     setIsLoading(true);
     try {
-      const user = await api.login(loginEmail, loginPassword);
-      localStorage.setItem('tyo_user', JSON.stringify(user));
-      toast.success(`Welcome back, ${user.name}`);
-
-      if (user.role === 'SUPER_ADMIN') {
-        navigate('/companies');
-      } else {
-        navigate('/dashboard');
-      }
-    } catch (err) {
-      toast.error('Invalid credentials.');
+      const user = await api.login(email, password);
+      completeLogin(user);
+    } catch (err: any) {
+      toast.error(err?.message || 'Invalid credentials.');
     } finally {
       setIsLoading(false);
     }
   };
 
-  const handleLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
-    await performLogin(email, password);
-  };
-
-  const handleRoleLogin = async (role: keyof typeof TEST_ROLE_CREDENTIALS) => {
+  const handleRoleLogin = async (role: UserRole) => {
     if (isLoading) return;
     const credentials = TEST_ROLE_CREDENTIALS[role];
     setEmail(credentials.email);
     setPassword(credentials.password);
-    await performLogin(credentials.email, credentials.password);
+    setIsLoading(true);
+    try {
+      const user = await api.loginAsRole(role);
+      completeLogin(user);
+    } catch (err: any) {
+      toast.error(err?.message || 'Role login failed.');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -104,13 +115,21 @@ export const Login = () => {
               <div className="relative">
                 <Lock className="absolute left-3 top-2.5 w-5 h-5 text-slate-500" />
                 <input
-                  type="password"
-                  className="w-full bg-slate-950 border border-slate-700 rounded-xl py-2.5 pl-10 pr-4 text-white focus:border-transparent outline-none transition-all placeholder:text-slate-600"
+                  type={showPassword ? 'text' : 'password'}
+                  className="w-full bg-slate-950 border border-slate-700 rounded-xl py-2.5 pl-10 pr-10 text-white focus:border-transparent outline-none transition-all placeholder:text-slate-600"
                   placeholder="********"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required
                 />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(prev => !prev)}
+                  className="absolute right-2 top-1.5 p-1.5 text-slate-500 hover:text-slate-300 transition-colors"
+                  aria-label={showPassword ? 'Hide password' : 'Show password'}
+                >
+                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
               </div>
             </div>
 
@@ -128,7 +147,7 @@ export const Login = () => {
             <div className="grid grid-cols-3 gap-2">
               <button
                 type="button"
-                onClick={() => handleRoleLogin('EMPLOYEE')}
+                onClick={() => handleRoleLogin(UserRole.EMPLOYEE)}
                 disabled={isLoading}
                 className="p-2.5 bg-slate-800/70 hover:bg-slate-700/80 border border-slate-600/40 rounded-xl text-xs text-slate-200 transition-all"
               >
@@ -136,7 +155,7 @@ export const Login = () => {
               </button>
               <button
                 type="button"
-                onClick={() => handleRoleLogin('COMPANY_ADMIN')}
+                onClick={() => handleRoleLogin(UserRole.COMPANY_ADMIN)}
                 disabled={isLoading}
                 className="p-2.5 bg-slate-800/70 hover:bg-slate-700/80 border border-slate-600/40 rounded-xl text-xs text-slate-200 transition-all"
               >
@@ -144,7 +163,7 @@ export const Login = () => {
               </button>
               <button
                 type="button"
-                onClick={() => handleRoleLogin('SUPER_ADMIN')}
+                onClick={() => handleRoleLogin(UserRole.SUPER_ADMIN)}
                 disabled={isLoading}
                 className="p-2.5 bg-indigo-900/30 hover:bg-indigo-800/35 border border-indigo-400/35 rounded-xl text-xs text-indigo-100 transition-all text-center flex flex-col items-center justify-center gap-1"
               >
