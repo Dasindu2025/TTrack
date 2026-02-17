@@ -23,6 +23,8 @@ Required backend variables:
 - `DATABASE_URL`
 - `NEXTAUTH_SECRET`
 - `NEXTAUTH_URL`
+- `ENABLE_TEST_LOGIN` (`true` enables permanent role test login)
+- `TEST_LOGIN_PASSWORD` (default `password123`)
 
 Optional frontend variables:
 - `VITE_API_PROXY_TARGET` (default `http://localhost:3001`)
@@ -43,16 +45,16 @@ npm run prisma:migrate --prefix backend
 npm run seed --prefix backend
 ```
 
-Seeded demo credentials:
-- `super@tyo.com / password123`
-- `alice@acme.com / password123`
-- `bob@acme.com / password123`
-
 For production deploy:
 
 ```bash
 npm run prisma:deploy --prefix backend
 ```
+
+Permanent no-seed role test login credentials (when `ENABLE_TEST_LOGIN=true`):
+- `SUPER_ADMIN` -> `super@tyo.com / password123`
+- `COMPANY_ADMIN` -> `alice@acme.com / password123`
+- `EMPLOYEE` -> `bob@acme.com / password123`
 
 ## Run Locally
 
@@ -90,6 +92,31 @@ docker compose logs -f backend
 docker compose exec backend npm run test
 docker compose down
 ```
+
+## Docker Compose (Production-style)
+
+This stack serves frontend and backend on the same host and proxies `/api/*` correctly to backend.
+
+```bash
+docker compose -f docker-compose.prod.yml up --build -d
+docker compose -f docker-compose.prod.yml ps
+docker compose -f docker-compose.prod.yml logs -f backend
+```
+
+Key production note:
+- Frontend Nginx now proxies `/api/*` -> `backend:3001` to avoid `502` from missing API upstream.
+- Backend auto-bootstraps on each start:
+  - `prisma migrate deploy`
+  - auto-seed (`AUTO_SEED=true`, idempotent)
+  - `next start`
+
+For webhook-style deploy triggers (like `curl -X POST "http://142.91.103.245:9000/?token=SUPER_SECRET_TOKEN"`), make sure your webhook handler runs:
+
+```bash
+docker compose -f docker-compose.prod.yml up --build -d
+```
+
+That single command is now enough for pull + migrate + seed + start (no manual seed step).
 
 ## API Surface
 

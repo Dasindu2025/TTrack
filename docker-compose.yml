@@ -18,7 +18,7 @@ services:
   backend:
     image: node:22-alpine
     working_dir: /app/backend
-    command: sh -c "npm install && npm run prisma:generate && npm run prisma:deploy && npm run seed && npm run dev"
+    command: sh -c "npm install && npm run prisma:generate && npm run prisma:deploy && if [ \"${AUTO_SEED:-true}\" = \"true\" ]; then npm run seed; fi && npm run dev"
     volumes:
       - ./:/app
       - backend_node_modules:/app/backend/node_modules
@@ -26,6 +26,9 @@ services:
       - DATABASE_URL=postgresql://postgres:password@db:5432/tyotrack?schema=public
       - NEXTAUTH_SECRET=changeme
       - NEXTAUTH_URL=http://localhost:3001
+      - ENABLE_TEST_LOGIN=true
+      - TEST_LOGIN_PASSWORD=password123
+      - AUTO_SEED=true
       - CHOKIDAR_USEPOLLING=true
     ports:
       - "3001:3001"

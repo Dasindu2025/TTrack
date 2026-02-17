@@ -1,0 +1,47 @@
+services:
+  db:
+    image: postgres:16-alpine
+    restart: always
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-password}
+      POSTGRES_DB: ${POSTGRES_DB:-tyotrack}
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d tyotrack"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    restart: always
+    environment:
+      DATABASE_URL: ${DATABASE_URL:-postgresql://postgres:password@db:5432/tyotrack?schema=public}
+      NEXTAUTH_SECRET: ${NEXTAUTH_SECRET:-changeme-in-production}
+      NEXTAUTH_URL: ${NEXTAUTH_URL:-http://localhost}
+      ENABLE_TEST_LOGIN: ${ENABLE_TEST_LOGIN:-true}
+      TEST_LOGIN_PASSWORD: ${TEST_LOGIN_PASSWORD:-password123}
+      AUTO_SEED: ${AUTO_SEED:-true}
+    expose:
+      - "3001"
+    depends_on:
+      db:
+        condition: service_healthy
+
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: always
+    depends_on:
+      backend:
+        condition: service_started
+    ports:
+      - "80:80"
+
+volumes:
+  db_data:
