@@ -1,21 +1,32 @@
 import { EntryStatus } from "@prisma/client";
 import { z } from "zod";
 import { NextRequest } from "next/server";
+import { DateTime } from "luxon";
 import { requireAuth, resolveTenant } from "@/lib/auth-guard";
 import { ApiError, jsonError, jsonOk } from "@/lib/http";
 import { prisma } from "@/lib/prisma";
 import { createTimeEntryWithSplits, formatSplitForFrontend } from "@/lib/time-entry";
 import { logAudit } from "@/lib/audit";
 
-const createEntrySchema = z.object({
+const baseCreateEntrySchema = z.object({
   tenantId: z.string().optional(),
   userId: z.string().optional(),
   workspaceId: z.string().optional(),
   projectId: z.string().min(1),
-  startTime: z.string().datetime(),
-  endTime: z.string().datetime(),
   notes: z.string().max(1000).optional()
 });
+
+const createEntrySchema = z.union([
+  baseCreateEntrySchema.extend({
+    startTime: z.string().datetime(),
+    endTime: z.string().datetime()
+  }),
+  baseCreateEntrySchema.extend({
+    localDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+    startClock: z.string().regex(/^([01]\d|2[0-3]):([0-5]\d)$/),
+    endClock: z.string().regex(/^([01]\d|2[0-3]):([0-5]\d)$/)
+  })
+]);
 
 export async function GET(req: NextRequest) {
   try {
@@ -69,6 +80,34 @@ export async function POST(req: NextRequest) {
 
     const tenantId = resolveTenant(session, body.tenantId);
     const userId = session.role === "EMPLOYEE" ? session.sub : body.userId ?? session.sub;
+    let startTimeIso: string;
+    let endTimeIso: string;
+
+    if ("localDate" in body) {
+      const startLocal = DateTime.fromISO(`${body.localDate}T${body.startClock}`, { zone: "Europe/Helsinki" });
+      if (!startLocal.isValid) {
+        throw new ApiError(400, "Invalid local start time");
+      }
+
+      let endLocal = DateTime.fromISO(`${body.localDate}T${body.endClock}`, { zone: "Europe/Helsinki" });
+      if (!endLocal.isValid) {
+        throw new ApiError(400, "Invalid local end time");
+      }
+
+      if (endLocal <= startLocal) {
+        endLocal = endLocal.plus({ days: 1 });
+      }
+
+      if (startLocal > DateTime.now().setZone("Europe/Helsinki")) {
+        throw new ApiError(400, "Cannot add time entries for future dates/times.");
+      }
+
+      startTimeIso = startLocal.toUTC().toISO() as string;
+      endTimeIso = endLocal.toUTC().toISO() as string;
+    } else {
+      startTimeIso = body.startTime;
+      endTimeIso = body.endTime;
+    }
 
     const created = await createTimeEntryWithSplits({
       prisma,
@@ -78,8 +117,8 @@ export async function POST(req: NextRequest) {
       userId,
       projectId: body.projectId,
       workspaceId: body.workspaceId,
-      startTime: body.startTime,
-      endTime: body.endTime,
+      startTime: startTimeIso,
+      endTime: endTimeIso,
       notes: body.notes
     });
 
@@ -92,8 +131,8 @@ export async function POST(req: NextRequest) {
       details: {
         userId,
         splitCount: created.splits.length,
-        startTime: body.startTime,
-        endTime: body.endTime
+        startTime: startTimeIso,
+        endTime: endTimeIso
       }
     });
 

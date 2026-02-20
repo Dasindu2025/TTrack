@@ -308,8 +308,9 @@ export const api = {
     userId: string,
     workspaceId: string,
     projectId: string,
-    start: Date,
-    end: Date,
+    localDate: string,
+    startClock: string,
+    endClock: string,
     notes?: string
   ) => {
     const tenantId = await getTenantId(workspaceId);
@@ -320,8 +321,9 @@ export const api = {
         userId,
         workspaceId,
         projectId,
-        startTime: start.toISOString(),
-        endTime: end.toISOString(),
+        localDate,
+        startClock,
+        endClock,
         notes
       }
     });

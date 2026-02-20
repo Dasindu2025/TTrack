@@ -4,7 +4,7 @@ import { api } from '../services/api';
 import { TimeEntry, Project, User, EntryStatus, UserRole } from '../types';
 import { Button } from '../components/ui/Button';
 import { Download, Calendar, Briefcase, Filter, Moon, Sun } from 'lucide-react';
-import { formatDate, formatTime, formatDateTime24, cn } from '../lib/utils';
+import { formatDate, formatTime, formatDateTime24, cn, dateKeyFromLocalDate } from '../lib/utils';
 import { toast } from 'sonner';
 
 export const DetailedReports = () => {
@@ -13,8 +13,8 @@ export const DetailedReports = () => {
   const [loading, setLoading] = useState(true);
 
   // Filters
-  const [startDate, setStartDate] = useState(new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0]);
-  const [endDate, setEndDate] = useState(new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0).toISOString().split('T')[0]);
+  const [startDate, setStartDate] = useState(dateKeyFromLocalDate(new Date(new Date().getFullYear(), new Date().getMonth(), 1)));
+  const [endDate, setEndDate] = useState(dateKeyFromLocalDate(new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0)));
   const [selectedProject, setSelectedProject] = useState('');
   const [selectedStatus, setSelectedStatus] = useState<string>('');
 

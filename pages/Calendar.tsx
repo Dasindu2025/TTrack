@@ -6,7 +6,7 @@ import { Button } from '../components/ui/Button';
 import { Time24Input } from '../components/ui/Time24Input';
 import { toast } from 'sonner';
 import { Plus, X, ChevronLeft, ChevronRight } from 'lucide-react';
-import { formatTime, formatDate, cn, isValid24HourTime } from '../lib/utils';
+import { formatTime, formatDate, cn, isValid24HourTime, dateKeyFromLocalDate } from '../lib/utils';
 
 export const Calendar = () => {
   const [currentDate, setCurrentDate] = useState(new Date());
@@ -79,26 +79,20 @@ export const Calendar = () => {
         throw new Error("Time must be in 24-hour format (HH:mm).");
       }
 
-      // Construct Date Objects
-      const [sh, sm] = formData.startTime.split(':');
-      const [eh, em] = formData.endTime.split(':');
-      
-      const start = new Date(selectedDate);
-      start.setHours(parseInt(sh), parseInt(sm));
-      
-      const end = new Date(selectedDate);
-      end.setHours(parseInt(eh), parseInt(em));
-      
-      // Handle overnight end (if end time < start time, assume next day)
-      if (end < start) {
-        end.setDate(end.getDate() + 1);
-      }
-
-      if (end.getTime() === start.getTime()) {
+      if (formData.startTime === formData.endTime) {
         throw new Error("End time must be after start time.");
       }
 
-      await api.createTimeEntry(user.id, formData.workspaceId, formData.projectId, start, end, formData.notes);
+      const selectedDateKey = dateKeyFromLocalDate(selectedDate);
+      await api.createTimeEntry(
+        user.id,
+        formData.workspaceId,
+        formData.projectId,
+        selectedDateKey,
+        formData.startTime,
+        formData.endTime,
+        formData.notes
+      );
       toast.success('Time entry created!');
       setIsModalOpen(false);
       
@@ -148,11 +142,9 @@ export const Calendar = () => {
         {days.map((date, idx) => {
           if (!date) return <div key={`empty-${idx}`} className="bg-slate-900 h-32 md:h-40" />;
           
-          const dateStr = date.toISOString().split('T')[0];
+          const dateStr = dateKeyFromLocalDate(date);
           const dayEntries = entries.filter(e => e.date === dateStr);
-          const approvedHours = dayEntries
-            .filter((entry) => entry.status === EntryStatus.APPROVED)
-            .reduce((sum, entry) => sum + entry.totalHours, 0);
+          const totalHours = dayEntries.reduce((sum, entry) => sum + entry.totalHours, 0);
           const isToday = new Date().toDateString() === date.toDateString();
 
           return (
@@ -172,8 +164,11 @@ export const Calendar = () => {
                   {date.getDate()}
                 </span>
                 {dayEntries.length > 0 && (
-                  <span className="text-[11px] font-extrabold text-emerald-300">
-                    {approvedHours.toFixed(1)}h
+                  <span className={cn(
+                    "text-[11px] font-extrabold",
+                    dayEntries.some((entry) => entry.status === EntryStatus.PENDING) ? "text-amber-300" : "text-emerald-300"
+                  )}>
+                    {totalHours.toFixed(1)}h
                   </span>
                 )}
                 <button 

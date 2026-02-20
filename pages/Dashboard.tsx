@@ -4,7 +4,7 @@ import { Layout } from '../components/Layout';
 import { api } from '../services/api';
 import { TimeEntry, EntryStatus, Workspace, Project, UserRole, User } from '../types';
 import { Clock, Moon, Sun, CheckCircle, ChevronLeft, ChevronRight, X, Plus, Building2, Users, FileText, Check, Activity, PieChart, Folder } from 'lucide-react';
-import { cn, getGreeting, formatTime, formatDate, isValid24HourTime } from '../lib/utils';
+import { cn, getGreeting, formatTime, formatDate, isValid24HourTime, dateKeyFromLocalDate } from '../lib/utils';
 import { motion } from 'framer-motion';
 import { Button } from '../components/ui/Button';
 import { Time24Input } from '../components/ui/Time24Input';
@@ -130,11 +130,11 @@ export const Dashboard = () => {
         const pending = data.filter(e => e.status === EntryStatus.PENDING);
         
         const now = new Date();
-        const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+        const startOfMonthKey = dateKeyFromLocalDate(new Date(now.getFullYear(), now.getMonth(), 1));
         
         const approvedEntries = data.filter(e => e.status === EntryStatus.APPROVED);
         const monthlyHours = approvedEntries
-          .filter(e => new Date(e.date) >= startOfMonth)
+          .filter(e => e.date >= startOfMonthKey)
           .reduce((sum, e) => sum + e.totalHours, 0);
 
         setAdminStats({
@@ -199,29 +199,25 @@ export const Dashboard = () => {
         throw new Error("Time must be in 24-hour format (HH:mm).");
       }
 
-      const [sh, sm] = formData.startTime.split(':');
-      const [eh, em] = formData.endTime.split(':');
-      
-      const start = new Date(selectedDate);
-      start.setHours(parseInt(sh), parseInt(sm));
-      
-      const end = new Date(selectedDate);
-      end.setHours(parseInt(eh), parseInt(em));
-      
-      if (end < start) {
-        end.setDate(end.getDate() + 1);
-      }
-
-      if (end.getTime() === start.getTime()) {
+      if (formData.startTime === formData.endTime) {
         throw new Error("End time must be after start time.");
       }
 
-      const now = new Date();
-      if (start > now) {
-        throw new Error("Cannot add time entries for future dates/times.");
+      const selectedDateKey = dateKeyFromLocalDate(selectedDate);
+      const todayKey = dateKeyFromLocalDate(new Date());
+      if (selectedDateKey > todayKey) {
+        throw new Error("Cannot add entries for future dates.");
       }
 
-      await api.createTimeEntry(user.id, formData.workspaceId, formData.projectId, start, end, formData.notes);
+      await api.createTimeEntry(
+        user.id,
+        formData.workspaceId,
+        formData.projectId,
+        selectedDateKey,
+        formData.startTime,
+        formData.endTime,
+        formData.notes
+      );
       toast.success('Time entry submitted!');
       setShowAddForm(false);
       fetchData();
@@ -264,10 +260,12 @@ export const Dashboard = () => {
   const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
   const startOfWeek = new Date(now);
   startOfWeek.setDate(now.getDate() - now.getDay());
+  const startOfMonthKey = dateKeyFromLocalDate(startOfMonth);
+  const startOfWeekKey = dateKeyFromLocalDate(startOfWeek);
 
   const approvedEntries = entries.filter(e => e.status === EntryStatus.APPROVED);
-  const thisMonthApproved = approvedEntries.filter(e => new Date(e.date) >= startOfMonth);
-  const thisWeekApproved = approvedEntries.filter(e => new Date(e.date) >= startOfWeek);
+  const thisMonthApproved = approvedEntries.filter(e => e.date >= startOfMonthKey);
+  const thisWeekApproved = approvedEntries.filter(e => e.date >= startOfWeekKey);
 
   const totalHoursMonth = thisMonthApproved.reduce((acc, curr) => acc + curr.totalHours, 0);
   const totalHoursWeek = thisWeekApproved.reduce((acc, curr) => acc + curr.totalHours, 0);
@@ -282,7 +280,7 @@ export const Dashboard = () => {
     return 'bg-emerald-500 shadow-emerald-500/50';
   };
 
-  const selectedDayEntries = entries.filter(e => e.date === selectedDate.toISOString().split('T')[0]);
+  const selectedDayEntries = entries.filter(e => e.date === dateKeyFromLocalDate(selectedDate));
   const selectedDayApprovedHours = selectedDayEntries
     .filter((entry) => entry.status === EntryStatus.APPROVED)
     .reduce((sum, entry) => sum + entry.totalHours, 0);
@@ -464,11 +462,9 @@ export const Dashboard = () => {
                   {days.map((date, idx) => {
                     if (!date) return <div key={`empty-${idx}`} />;
 
-                    const dateStr = date.toISOString().split('T')[0];
+                    const dateStr = dateKeyFromLocalDate(date);
                     const dayEntries = entries.filter(e => e.date === dateStr);
-                    const approvedHours = dayEntries
-                      .filter((entry) => entry.status === EntryStatus.APPROVED)
-                      .reduce((sum, entry) => sum + entry.totalHours, 0);
+                    const totalHours = dayEntries.reduce((sum, entry) => sum + entry.totalHours, 0);
                     const statusClass = getDayStatus(dayEntries);
                     const isSelected = selectedDate.toDateString() === date.toDateString();
                     const isToday = new Date().toDateString() === date.toDateString();
@@ -493,9 +489,13 @@ export const Dashboard = () => {
                         </button>
                         <span className={cn(
                           "text-[11px] mt-1 font-extrabold leading-none tracking-wide", 
-                          dayEntries.length === 0 ? "text-transparent" : approvedHours > 0 ? "text-emerald-300" : "text-slate-500"
+                          dayEntries.length === 0
+                            ? "text-transparent"
+                            : dayEntries.some((entry) => entry.status === EntryStatus.PENDING)
+                              ? "text-amber-300"
+                              : "text-emerald-300"
                         )}>
-                          {dayEntries.length === 0 ? "0.0h" : `${approvedHours.toFixed(1)}h`}
+                          {dayEntries.length === 0 ? "0.0h" : `${totalHours.toFixed(1)}h`}
                         </span>
                       </div>
                     );

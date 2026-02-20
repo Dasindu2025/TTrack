@@ -41,7 +41,7 @@ services:
       backend:
         condition: service_started
     ports:
-      - "80:80"
+      - "3033:80"
 
 volumes:
   db_data:

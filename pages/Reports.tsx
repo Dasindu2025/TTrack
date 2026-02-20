@@ -3,7 +3,7 @@ import React, { useEffect, useState } from 'react';
 import { Layout } from '../components/Layout';
 import { api } from '../services/api';
 import { TimeEntry, Project, Workspace, EntryStatus, User } from '../types';
-import { cn, formatDate, formatTime } from '../lib/utils';
+import { cn, formatDate, formatTime, dateKeyFromLocalDate } from '../lib/utils';
 import { Calendar, Table2, Download } from 'lucide-react';
 import { Button } from '../components/ui/Button';
 import { toast } from 'sonner';
@@ -16,8 +16,8 @@ export const Reports = () => {
   
   // Date Filters (Default to this month)
   const today = new Date();
-  const firstDay = new Date(today.getFullYear(), today.getMonth(), 1).toISOString().split('T')[0];
-  const lastDay = new Date(today.getFullYear(), today.getMonth() + 1, 0).toISOString().split('T')[0];
+  const firstDay = dateKeyFromLocalDate(new Date(today.getFullYear(), today.getMonth(), 1));
+  const lastDay = dateKeyFromLocalDate(new Date(today.getFullYear(), today.getMonth() + 1, 0));
   
   const [dateRange, setDateRange] = useState({ start: firstDay, end: lastDay });
 
