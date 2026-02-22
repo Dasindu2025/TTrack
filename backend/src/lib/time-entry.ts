@@ -182,6 +182,30 @@ export async function createTimeEntryWithSplits(params: CreateTimeEntryParams) {
     throw new ApiError(400, "Project is not linked to the selected workspace");
   }
 
+  // Prevent employees from submitting overlapping time ranges.
+  const overlappingEntry = await params.prisma.timeEntry.findFirst({
+    where: {
+      tenantId: params.tenantId,
+      userId: params.userId,
+      status: { not: EntryStatus.REJECTED },
+      startTime: { lt: endUtc },
+      endTime: { gt: startUtc }
+    },
+    select: {
+      id: true,
+      startTime: true,
+      endTime: true
+    }
+  });
+
+  if (overlappingEntry) {
+    throw new ApiError(409, "Overlapping time entry already exists for this employee", {
+      conflictingEntryId: overlappingEntry.id,
+      conflictingStartTime: overlappingEntry.startTime.toISOString(),
+      conflictingEndTime: overlappingEntry.endTime.toISOString()
+    });
+  }
+
   const resolvedWorkspaceId = params.workspaceId ?? project.workspaceId ?? null;
 
   if (resolvedWorkspaceId) {
