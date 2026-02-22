@@ -5,7 +5,7 @@ import { api } from '../services/api';
 import { Company, User } from '../types';
 import { Button } from '../components/ui/Button';
 import { toast } from 'sonner';
-import { Building2, Plus, User as UserIcon, X, MapPin, Loader2, Shield, Lock, Mail } from 'lucide-react';
+import { Building2, Plus, User as UserIcon, X, MapPin, Loader2, Shield, Lock, Mail, Eye, EyeOff } from 'lucide-react';
 
 interface CompanyWithAdmins extends Company {
   admins?: User[];
@@ -17,6 +17,8 @@ export const Companies = () => {
   const [isAddCompanyOpen, setIsAddCompanyOpen] = useState(false);
   const [isAddAdminOpen, setIsAddAdminOpen] = useState(false);
   const [selectedCompanyId, setSelectedCompanyId] = useState<string | null>(null);
+  const [showCompanyPassword, setShowCompanyPassword] = useState(false);
+  const [showAdminPassword, setShowAdminPassword] = useState(false);
   
   // Forms
   const [newCompany, setNewCompany] = useState({ name: '', email: '', password: '' });
@@ -177,8 +179,8 @@ export const Companies = () => {
 
       {/* Add Company Modal */}
       {isAddCompanyOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm animate-in fade-in">
-          <div className="bg-slate-900 rounded-xl shadow-xl w-full max-w-md p-6 relative border border-slate-800">
+        <div className="fixed inset-0 z-50 flex items-start sm:items-center justify-center overflow-y-auto bg-black/70 p-3 sm:p-4 pt-16 sm:pt-4 backdrop-blur-sm animate-in fade-in">
+          <div className="bg-slate-900 rounded-xl shadow-xl w-full max-w-md p-6 relative border border-slate-800 max-h-[calc(100dvh-1.5rem)] sm:max-h-[calc(100dvh-2rem)] overflow-y-auto">
             <button onClick={() => setIsAddCompanyOpen(false)} className="absolute top-4 right-4 text-slate-500 hover:text-white"><X className="w-5 h-5"/></button>
             <div className="flex items-center gap-3 mb-6">
               <div className="p-3 bg-purple-500/10 rounded-lg text-purple-400">
@@ -220,13 +222,21 @@ export const Companies = () => {
                 <div className="relative">
                   <Lock className="absolute left-3 top-2.5 w-4 h-4 text-slate-500" />
                   <input 
-                    type="password" 
+                    type={showCompanyPassword ? "text" : "password"} 
                     required 
                     placeholder="********" 
-                    className="w-full bg-slate-950 border border-slate-700 rounded-lg p-2.5 pl-9 text-white focus:ring-2 focus:ring-purple-500 outline-none" 
+                    className="w-full bg-slate-950 border border-slate-700 rounded-lg p-2.5 pl-9 pr-10 text-white focus:ring-2 focus:ring-purple-500 outline-none" 
                     value={newCompany.password} 
                     onChange={e => setNewCompany({...newCompany, password: e.target.value})} 
                   />
+                  <button
+                    type="button"
+                    onClick={() => setShowCompanyPassword((prev) => !prev)}
+                    className="absolute right-2 top-1.5 p-1.5 text-slate-500 hover:text-slate-300 transition-colors"
+                    aria-label={showCompanyPassword ? "Hide password" : "Show password"}
+                  >
+                    {showCompanyPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
                 </div>
                 <p className="text-[10px] text-slate-500 mt-1">Default credentials for company portal access.</p>
               </div>
@@ -239,8 +249,8 @@ export const Companies = () => {
 
       {/* Add Admin Modal */}
       {isAddAdminOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm animate-in fade-in">
-          <div className="bg-slate-900 rounded-xl shadow-xl w-full max-w-sm p-6 relative border border-slate-800">
+        <div className="fixed inset-0 z-50 flex items-start sm:items-center justify-center overflow-y-auto bg-black/70 p-3 sm:p-4 pt-16 sm:pt-4 backdrop-blur-sm animate-in fade-in">
+          <div className="bg-slate-900 rounded-xl shadow-xl w-full max-w-sm p-6 relative border border-slate-800 max-h-[calc(100dvh-1.5rem)] sm:max-h-[calc(100dvh-2rem)] overflow-y-auto">
             <button onClick={() => setIsAddAdminOpen(false)} className="absolute top-4 right-4 text-slate-500 hover:text-white"><X className="w-5 h-5"/></button>
             
             <div className="flex items-center gap-3 mb-2">
@@ -262,7 +272,24 @@ export const Companies = () => {
               </div>
               <div>
                 <label className="block text-sm font-medium text-slate-400 mb-1">Password</label>
-                <input type="password" required placeholder="********" className="w-full bg-slate-950 border border-slate-700 rounded-lg p-2.5 text-white focus:ring-2 focus:ring-blue-500 outline-none" value={newAdmin.password} onChange={e => setNewAdmin({...newAdmin, password: e.target.value})} />
+                <div className="relative">
+                  <input
+                    type={showAdminPassword ? "text" : "password"}
+                    required
+                    placeholder="********"
+                    className="w-full bg-slate-950 border border-slate-700 rounded-lg p-2.5 pr-10 text-white focus:ring-2 focus:ring-blue-500 outline-none"
+                    value={newAdmin.password}
+                    onChange={e => setNewAdmin({...newAdmin, password: e.target.value})}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowAdminPassword((prev) => !prev)}
+                    className="absolute right-2 top-1.5 p-1.5 text-slate-500 hover:text-slate-300 transition-colors"
+                    aria-label={showAdminPassword ? "Hide password" : "Show password"}
+                  >
+                    {showAdminPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
               </div>
               <Button type="submit" className="w-full mt-4">Assign Admin</Button>
             </form>

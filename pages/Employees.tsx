@@ -5,7 +5,7 @@ import { api } from '../services/api';
 import { User } from '../types';
 import { Button } from '../components/ui/Button';
 import { toast } from 'sonner';
-import { User as UserIcon, Lock, Settings2, X, Shield, Plus, Mail } from 'lucide-react';
+import { User as UserIcon, Lock, Settings2, X, Shield, Plus, Mail, Eye, EyeOff } from 'lucide-react';
 import { cn } from '../lib/utils';
 
 interface EmployeeWithProfile extends User {
@@ -21,6 +21,7 @@ export const Employees = () => {
   const [backdateDays, setBackdateDays] = useState(7);
   const [isAddEmployeeOpen, setIsAddEmployeeOpen] = useState(false);
   const [newEmployee, setNewEmployee] = useState({ name: '', email: '', password: '' });
+  const [showNewEmployeePassword, setShowNewEmployeePassword] = useState(false);
   
   const user = JSON.parse(localStorage.getItem('tyo_user') || '{}');
 
@@ -160,8 +161,8 @@ export const Employees = () => {
 
       {/* Create Employee Modal */}
       {isAddEmployeeOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm animate-in fade-in">
-          <div className="bg-slate-900 rounded-xl shadow-xl w-full max-w-sm p-6 relative border border-slate-800">
+        <div className="fixed inset-0 z-50 flex items-start sm:items-center justify-center overflow-y-auto bg-black/70 p-3 sm:p-4 pt-16 sm:pt-4 backdrop-blur-sm animate-in fade-in">
+          <div className="bg-slate-900 rounded-xl shadow-xl w-full max-w-sm p-6 relative border border-slate-800 max-h-[calc(100dvh-1.5rem)] sm:max-h-[calc(100dvh-2rem)] overflow-y-auto">
             <button onClick={() => setIsAddEmployeeOpen(false)} className="absolute top-4 right-4 text-slate-500 hover:text-white"><X className="w-5 h-5"/></button>
             
             <div className="flex items-center gap-3 mb-6">
@@ -207,13 +208,21 @@ export const Employees = () => {
                 <div className="relative">
                   <Lock className="absolute left-3 top-2.5 w-4 h-4 text-slate-500" />
                   <input 
-                    type="password" 
+                    type={showNewEmployeePassword ? "text" : "password"} 
                     required 
                     placeholder="********" 
-                    className="w-full bg-slate-950 border border-slate-700 rounded-lg p-2.5 pl-9 text-white focus:ring-2 focus:ring-blue-500 outline-none" 
+                    className="w-full bg-slate-950 border border-slate-700 rounded-lg p-2.5 pl-9 pr-10 text-white focus:ring-2 focus:ring-blue-500 outline-none" 
                     value={newEmployee.password} 
                     onChange={e => setNewEmployee({...newEmployee, password: e.target.value})} 
                   />
+                  <button
+                    type="button"
+                    onClick={() => setShowNewEmployeePassword((prev) => !prev)}
+                    className="absolute right-2 top-1.5 p-1.5 text-slate-500 hover:text-slate-300 transition-colors"
+                    aria-label={showNewEmployeePassword ? "Hide password" : "Show password"}
+                  >
+                    {showNewEmployeePassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
                 </div>
               </div>
               
@@ -225,8 +234,8 @@ export const Employees = () => {
 
       {/* Config Modal */}
       {editingEmployee && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm">
-          <div className="bg-slate-900 rounded-xl shadow-xl w-full max-w-sm p-6 relative animate-in fade-in zoom-in duration-200 border border-slate-800">
+        <div className="fixed inset-0 z-50 flex items-start sm:items-center justify-center overflow-y-auto bg-black/70 p-3 sm:p-4 pt-16 sm:pt-4 backdrop-blur-sm">
+          <div className="bg-slate-900 rounded-xl shadow-xl w-full max-w-sm p-6 relative animate-in fade-in zoom-in duration-200 border border-slate-800 max-h-[calc(100dvh-1.5rem)] sm:max-h-[calc(100dvh-2rem)] overflow-y-auto">
              <button 
               onClick={() => setEditingEmployee(null)}
               className="absolute top-4 right-4 text-slate-500 hover:text-slate-300"
