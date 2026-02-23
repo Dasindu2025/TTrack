@@ -24,6 +24,10 @@ export interface CreateTimeEntryParams {
   notes?: string;
 }
 
+export function getInitialEntryStatus(autoApproveEntries: boolean): EntryStatus {
+  return autoApproveEntries ? EntryStatus.APPROVED : EntryStatus.PENDING;
+}
+
 export function parseTimeToMinutes(value: string): number {
   const [hours, minutes] = value.split(":").map(Number);
   if (
@@ -236,6 +240,9 @@ export async function createTimeEntryWithSplits(params: CreateTimeEntryParams) {
   const totalHours = Number(summaries.reduce((acc, item) => acc + item.totalHours, 0).toFixed(2));
   const eveningHours = Number(summaries.reduce((acc, item) => acc + item.eveningHours, 0).toFixed(2));
   const nightHours = Number(summaries.reduce((acc, item) => acc + item.nightHours, 0).toFixed(2));
+  const initialStatus = getInitialEntryStatus(user.autoApproveEntries);
+  const initialApprovedAt = initialStatus === EntryStatus.APPROVED ? new Date() : null;
+  const initialApprovedById = initialStatus === EntryStatus.APPROVED ? params.actorId : null;
 
   return params.prisma.$transaction(async (tx) => {
     const entry = await tx.timeEntry.create({
@@ -251,7 +258,8 @@ export async function createTimeEntryWithSplits(params: CreateTimeEntryParams) {
         totalHours,
         eveningHours,
         nightHours,
-        status: EntryStatus.PENDING
+        status: initialStatus,
+        lockedAt: initialStatus === EntryStatus.APPROVED ? new Date() : null
       }
     });
 
@@ -270,11 +278,13 @@ export async function createTimeEntryWithSplits(params: CreateTimeEntryParams) {
           localDate: item.segment.localDate,
           startTime: item.segment.startUtc,
           endTime: item.segment.endUtc,
-          status: EntryStatus.PENDING,
+          status: initialStatus,
           notes: params.notes,
           totalHours: item.totalHours,
           eveningHours: item.eveningHours,
-          nightHours: item.nightHours
+          nightHours: item.nightHours,
+          approvedById: initialApprovedById,
+          approvedAt: initialApprovedAt
         }
       });
 

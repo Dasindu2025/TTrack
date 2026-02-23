@@ -466,7 +466,9 @@ export const Dashboard = () => {
 
                     const dateStr = dateKeyFromLocalDate(date);
                     const dayEntries = entries.filter(e => e.date === dateStr);
-                    const totalHours = dayEntries.reduce((sum, entry) => sum + entry.totalHours, 0);
+                    const approvedHours = dayEntries
+                      .filter((entry) => entry.status === EntryStatus.APPROVED)
+                      .reduce((sum, entry) => sum + entry.totalHours, 0);
                     const statusClass = getDayStatus(dayEntries);
                     const isSelected = selectedDate.toDateString() === date.toDateString();
                     const isToday = new Date().toDateString() === date.toDateString();
@@ -493,11 +495,11 @@ export const Dashboard = () => {
                           "text-[11px] mt-1 font-extrabold leading-none tracking-wide", 
                           dayEntries.length === 0
                             ? "text-transparent"
-                            : dayEntries.some((entry) => entry.status === EntryStatus.PENDING)
-                              ? "text-amber-300"
-                              : "text-emerald-300"
+                            : approvedHours > 0
+                              ? "text-emerald-300"
+                              : "text-slate-500"
                         )}>
-                          {dayEntries.length === 0 ? "0.0h" : `${totalHours.toFixed(1)}h`}
+                          {dayEntries.length === 0 ? "0.0h" : `${approvedHours.toFixed(1)}h`}
                         </span>
                       </div>
                     );

@@ -132,7 +132,8 @@ export async function POST(req: NextRequest) {
         userId,
         splitCount: created.splits.length,
         startTime: startTimeIso,
-        endTime: endTimeIso
+        endTime: endTimeIso,
+        autoApproved: created.entry.status === EntryStatus.APPROVED
       }
     });
 

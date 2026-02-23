@@ -19,6 +19,7 @@ export interface User {
   companyId?: string;
   avatar?: string;
   status?: 'ACTIVE' | 'SUSPENDED';
+  autoApproveEntries?: boolean;
 }
 
 export interface Company {
@@ -68,6 +69,7 @@ export interface EmployeeProfile {
   id: string;
   userId: string;
   backdateLimitDays: number;
+  autoApproveEntries?: boolean;
 }
 
 export interface AuditLog {

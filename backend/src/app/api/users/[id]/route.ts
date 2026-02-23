@@ -11,6 +11,7 @@ const updateSchema = z.object({
   email: z.string().email().optional(),
   status: z.enum(["ACTIVE", "SUSPENDED"]).optional(),
   backdateLimitDays: z.number().int().min(1).max(60).optional(),
+  autoApproveEntries: z.boolean().optional(),
   role: z.nativeEnum(UserRole).optional()
 });
 
@@ -28,7 +29,8 @@ export async function GET(req: NextRequest, context: { params: Promise<{ id: str
         email: true,
         role: true,
         status: true,
-        backdateLimitDays: true
+        backdateLimitDays: true,
+        autoApproveEntries: true
       }
     });
 
@@ -83,7 +85,7 @@ export async function PATCH(req: NextRequest, context: { params: Promise<{ id: s
       throw new ApiError(403, "Company admins cannot change user roles");
     }
 
-    if (!isAdmin && (body.status || body.role || body.backdateLimitDays !== undefined)) {
+    if (!isAdmin && (body.status || body.role || body.backdateLimitDays !== undefined || body.autoApproveEntries !== undefined)) {
       throw new ApiError(403, "Only admins can change role, status, or backdate policy");
     }
 
@@ -106,7 +108,8 @@ export async function PATCH(req: NextRequest, context: { params: Promise<{ id: s
         ...(normalizedEmail ? { email: normalizedEmail } : {}),
         ...(body.status ? { status: body.status } : {}),
         ...(body.role ? { role: body.role } : {}),
-        ...(body.backdateLimitDays !== undefined ? { backdateLimitDays: body.backdateLimitDays } : {})
+        ...(body.backdateLimitDays !== undefined ? { backdateLimitDays: body.backdateLimitDays } : {}),
+        ...(body.autoApproveEntries !== undefined ? { autoApproveEntries: body.autoApproveEntries } : {})
       },
       select: {
         id: true,
@@ -115,7 +118,8 @@ export async function PATCH(req: NextRequest, context: { params: Promise<{ id: s
         email: true,
         role: true,
         status: true,
-        backdateLimitDays: true
+        backdateLimitDays: true,
+        autoApproveEntries: true
       }
     });
 
@@ -164,7 +168,8 @@ export async function DELETE(req: NextRequest, context: { params: Promise<{ id: 
         email: true,
         role: true,
         status: true,
-        backdateLimitDays: true
+        backdateLimitDays: true,
+        autoApproveEntries: true
       }
     });
 

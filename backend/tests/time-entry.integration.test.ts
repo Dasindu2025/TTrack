@@ -1,9 +1,11 @@
 import { describe, expect, it } from "vitest";
+import { EntryStatus } from "@prisma/client";
 import {
   splitByMidnightHelsinki,
   calculateOverlapHours,
   parseTimeToMinutes,
-  summarizeSplit
+  summarizeSplit,
+  getInitialEntryStatus
 } from "@/lib/time-entry";
 
 describe("Time entry creation and split logic", () => {
@@ -53,5 +55,10 @@ describe("Time entry creation and split logic", () => {
 
     expect(firstSummary.totalHours).toBe(2);
     expect(firstSummary.nightHours).toBe(2);
+  });
+
+  it("sets initial entry status from employee approval mode", () => {
+    expect(getInitialEntryStatus(false)).toBe(EntryStatus.PENDING);
+    expect(getInitialEntryStatus(true)).toBe(EntryStatus.APPROVED);
   });
 });

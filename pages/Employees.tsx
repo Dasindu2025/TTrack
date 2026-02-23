@@ -10,6 +10,7 @@ import { User as UserIcon, Lock, Settings2, X, Shield, Plus, Mail, Eye, EyeOff }
 interface EmployeeWithProfile extends User {
   profile: {
     backdateLimitDays: number;
+    autoApproveEntries?: boolean;
   }
 }
 
@@ -18,6 +19,7 @@ export const Employees = () => {
   const [loading, setLoading] = useState(true);
   const [editingEmployee, setEditingEmployee] = useState<EmployeeWithProfile | null>(null);
   const [backdateDays, setBackdateDays] = useState(7);
+  const [autoApproveEntries, setAutoApproveEntries] = useState(false);
   const [isAddEmployeeOpen, setIsAddEmployeeOpen] = useState(false);
   const [newEmployee, setNewEmployee] = useState({ name: '', email: '', password: '' });
   const [showNewEmployeePassword, setShowNewEmployeePassword] = useState(false);
@@ -88,12 +90,16 @@ export const Employees = () => {
   const openSettings = (emp: EmployeeWithProfile) => {
     setEditingEmployee(emp);
     setBackdateDays(emp.profile.backdateLimitDays);
+    setAutoApproveEntries(Boolean(emp.profile.autoApproveEntries));
   };
 
   const saveSettings = async () => {
     if (!editingEmployee) return;
     try {
-      await api.updateEmployeeProfile(editingEmployee.id, { backdateLimitDays: backdateDays });
+      await api.updateEmployeeProfile(editingEmployee.id, {
+        backdateLimitDays: backdateDays,
+        autoApproveEntries
+      });
       toast.success('Employee settings updated');
       setEditingEmployee(null);
       loadEmployees();
@@ -138,6 +144,7 @@ export const Employees = () => {
                   <th className="px-6 py-4">Email</th>
                   <th className="px-6 py-4">Role</th>
                   <th className="px-6 py-4 text-center">Backdate Limit</th>
+                  <th className="px-6 py-4 text-center">Approval Mode</th>
                   <th className="px-6 py-4 text-right">Actions</th>
                 </tr>
               </thead>
@@ -161,6 +168,15 @@ export const Employees = () => {
                     <td className="px-6 py-4 text-center">
                       <span className="font-mono bg-slate-800 px-2 py-1 rounded text-slate-300">
                         {emp.profile.backdateLimitDays} days
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 text-center">
+                      <span className={`inline-flex items-center px-2 py-1 rounded-md text-xs font-medium border ${
+                        emp.profile.autoApproveEntries
+                          ? 'bg-emerald-900/20 text-emerald-300 border-emerald-800/40'
+                          : 'bg-amber-900/20 text-amber-300 border-amber-800/40'
+                      }`}>
+                        {emp.profile.autoApproveEntries ? 'AUTO' : 'MANUAL'}
                       </span>
                     </td>
                     <td className="px-6 py-4 text-right">
@@ -187,7 +203,7 @@ export const Employees = () => {
                 ))}
                 {employees.length === 0 && !loading && (
                   <tr>
-                    <td colSpan={5} className="px-6 py-8 text-center text-slate-500">
+                    <td colSpan={6} className="px-6 py-8 text-center text-slate-500">
                       No employees found.
                     </td>
                   </tr>
@@ -386,6 +402,39 @@ export const Employees = () => {
                   <span className="w-12 text-center bg-slate-800 py-1 rounded text-sm text-white font-mono border border-slate-700">
                     {backdateDays}
                   </span>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-slate-300 mb-2">
+                  Approval Mode
+                </label>
+                <p className="text-xs text-slate-500 mb-3">
+                  Choose whether this employee's new time entries are approved automatically or require admin review.
+                </p>
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setAutoApproveEntries(false)}
+                    className={`rounded-lg border px-3 py-2 text-sm font-medium transition-colors ${
+                      !autoApproveEntries
+                        ? 'border-amber-500/60 bg-amber-500/10 text-amber-200'
+                        : 'border-slate-700 bg-slate-900 text-slate-300 hover:border-slate-500'
+                    }`}
+                  >
+                    Manual
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setAutoApproveEntries(true)}
+                    className={`rounded-lg border px-3 py-2 text-sm font-medium transition-colors ${
+                      autoApproveEntries
+                        ? 'border-emerald-500/60 bg-emerald-500/10 text-emerald-200'
+                        : 'border-slate-700 bg-slate-900 text-slate-300 hover:border-slate-500'
+                    }`}
+                  >
+                    Auto Approve
+                  </button>
                 </div>
               </div>
             </div>

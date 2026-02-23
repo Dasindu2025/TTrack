@@ -162,7 +162,8 @@ export const api = {
         name,
         email,
         password: password ?? "password123",
-        role: "EMPLOYEE"
+        role: "EMPLOYEE",
+        autoApproveEntries: false
       }
     });
   },
@@ -290,16 +291,18 @@ export const api = {
         ...user,
         companyId: user.tenantId,
         profile: {
-          backdateLimitDays: user.backdateLimitDays ?? 7
+          backdateLimitDays: user.backdateLimitDays ?? 7,
+          autoApproveEntries: Boolean(user.autoApproveEntries)
         }
       }));
   },
 
-  updateEmployeeProfile: async (userId: string, data: { backdateLimitDays: number }) => {
+  updateEmployeeProfile: async (userId: string, data: { backdateLimitDays: number; autoApproveEntries?: boolean }) => {
     return request(`/api/users/${userId}`, {
       method: "PATCH",
       body: {
-        backdateLimitDays: data.backdateLimitDays
+        backdateLimitDays: data.backdateLimitDays,
+        ...(data.autoApproveEntries !== undefined ? { autoApproveEntries: data.autoApproveEntries } : {})
       }
     });
   },
@@ -311,6 +314,7 @@ export const api = {
       email?: string;
       status?: "ACTIVE" | "SUSPENDED";
       backdateLimitDays?: number;
+      autoApproveEntries?: boolean;
       role?: UserRole;
     }
   ) => {

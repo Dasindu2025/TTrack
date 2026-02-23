@@ -14,6 +14,7 @@ const createUserSchema = z.object({
   password: z.string().min(8),
   role: z.nativeEnum(UserRole),
   backdateLimitDays: z.number().int().min(1).max(60).optional(),
+  autoApproveEntries: z.boolean().optional(),
   status: z.enum(["ACTIVE", "SUSPENDED"]).optional()
 });
 
@@ -49,6 +50,7 @@ export async function GET(req: NextRequest) {
         role: true,
         status: true,
         backdateLimitDays: true,
+        autoApproveEntries: true,
         createdAt: true,
         updatedAt: true
       },
@@ -87,7 +89,8 @@ export async function POST(req: NextRequest) {
         passwordHash: await hashPassword(body.password),
         role: body.role,
         status: body.status ?? "ACTIVE",
-        backdateLimitDays: body.backdateLimitDays ?? 7
+        backdateLimitDays: body.backdateLimitDays ?? 7,
+        autoApproveEntries: body.autoApproveEntries ?? false
       },
       select: {
         id: true,
@@ -96,7 +99,8 @@ export async function POST(req: NextRequest) {
         email: true,
         role: true,
         status: true,
-        backdateLimitDays: true
+        backdateLimitDays: true,
+        autoApproveEntries: true
       }
     });
 
