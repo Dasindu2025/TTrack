@@ -11,8 +11,16 @@ const credentialsSchema = z.object({
   password: z.string().min(8)
 });
 
+const SESSION_MAX_AGE_SECONDS = 60 * 60;
+
 export const { handlers, auth } = NextAuth({
-  session: { strategy: "jwt" },
+  session: {
+    strategy: "jwt",
+    maxAge: SESSION_MAX_AGE_SECONDS
+  },
+  jwt: {
+    maxAge: SESSION_MAX_AGE_SECONDS
+  },
   providers: [
     Credentials({
       name: "credentials",

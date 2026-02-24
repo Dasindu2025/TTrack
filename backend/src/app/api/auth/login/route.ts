@@ -5,6 +5,8 @@ import { verifyPassword } from "@/lib/password";
 import { authenticateTestRole, authenticateTestUser } from "@/lib/test-auth";
 import { ApiError, jsonError, jsonOk } from "@/lib/http";
 
+const SESSION_MAX_AGE_SECONDS = 60 * 60;
+
 const credentialsSchema = z.object({
   email: z.string().email(),
   password: z.string().min(8)
@@ -62,7 +64,7 @@ export async function POST(req: Request) {
       },
       secret,
       salt: "authjs.session-token",
-      maxAge: 60 * 60 * 24 * 30
+      maxAge: SESSION_MAX_AGE_SECONDS
     });
 
     const response = jsonOk({
@@ -80,7 +82,7 @@ export async function POST(req: Request) {
       secure: isSecure,
       sameSite: "lax" as const,
       path: "/",
-      maxAge: 60 * 60 * 24 * 30
+      maxAge: SESSION_MAX_AGE_SECONDS
     };
 
     response.cookies.set(isSecure ? "__Secure-authjs.session-token" : "authjs.session-token", token, baseCookie);
