@@ -3,8 +3,8 @@ import Credentials from "next-auth/providers/credentials";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { verifyPassword } from "@/lib/password";
-import { authenticateTestUser } from "@/lib/test-auth";
 import type { UserRole, UserStatus } from "@prisma/client";
+import { ensureDefaultSuperAdmin } from "@/lib/default-super-admin";
 
 const credentialsSchema = z.object({
   email: z.string().email(),
@@ -34,6 +34,8 @@ export const { handlers, auth } = NextAuth({
           return null;
         }
 
+        await ensureDefaultSuperAdmin(prisma);
+
         const dbUser = await prisma.user.findUnique({
           where: { email: parsed.data.email.toLowerCase().trim() }
         });
@@ -45,10 +47,6 @@ export const { handlers, auth } = NextAuth({
           if (!isValid) {
             user = null;
           }
-        }
-
-        if (!user) {
-          user = await authenticateTestUser(prisma, parsed.data.email, parsed.data.password);
         }
 
         if (!user || user.status !== "ACTIVE") {

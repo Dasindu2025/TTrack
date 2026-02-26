@@ -1,17 +1,11 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Clock, Lock, Mail, ArrowRight, ShieldCheck, Eye, EyeOff } from 'lucide-react';
+import { Clock, Lock, Mail, ArrowRight, Eye, EyeOff } from 'lucide-react';
 import { api } from '../services/api';
 import { toast } from 'sonner';
 import { Button } from '../components/ui/Button';
 import { motion } from 'framer-motion';
 import { User, UserRole } from '../types';
-
-const TEST_ROLE_CREDENTIALS = {
-  EMPLOYEE: { email: 'bob@acme.com', password: 'password123' },
-  COMPANY_ADMIN: { email: 'alice@acme.com', password: 'password123' },
-  SUPER_ADMIN: { email: 'super@tyo.com', password: 'password123' },
-} as const satisfies Record<UserRole, { email: string; password: string }>;
 
 export const Login = () => {
   const [email, setEmail] = useState('');
@@ -40,22 +34,6 @@ export const Login = () => {
       completeLogin(user);
     } catch (err: any) {
       toast.error(err?.message || 'Invalid credentials.');
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleRoleLogin = async (role: UserRole) => {
-    if (isLoading) return;
-    const credentials = TEST_ROLE_CREDENTIALS[role];
-    setEmail(credentials.email);
-    setPassword(credentials.password);
-    setIsLoading(true);
-    try {
-      const user = await api.loginAsRole(role);
-      completeLogin(user);
-    } catch (err: any) {
-      toast.error(err?.message || 'Role login failed.');
     } finally {
       setIsLoading(false);
     }
@@ -142,36 +120,6 @@ export const Login = () => {
             </Button>
           </form>
 
-          <div className="mt-8 pt-6 border-t border-white/10">
-            <p className="text-xs text-center text-slate-400 mb-4 uppercase tracking-[0.12em]">Role Test Login</p>
-            <div className="grid grid-cols-3 gap-2">
-              <button
-                type="button"
-                onClick={() => handleRoleLogin(UserRole.EMPLOYEE)}
-                disabled={isLoading}
-                className="p-2.5 bg-slate-800/70 hover:bg-slate-700/80 border border-slate-600/40 rounded-xl text-xs text-slate-200 transition-all"
-              >
-                Employee
-              </button>
-              <button
-                type="button"
-                onClick={() => handleRoleLogin(UserRole.COMPANY_ADMIN)}
-                disabled={isLoading}
-                className="p-2.5 bg-slate-800/70 hover:bg-slate-700/80 border border-slate-600/40 rounded-xl text-xs text-slate-200 transition-all"
-              >
-                Admin
-              </button>
-              <button
-                type="button"
-                onClick={() => handleRoleLogin(UserRole.SUPER_ADMIN)}
-                disabled={isLoading}
-                className="p-2.5 bg-indigo-900/30 hover:bg-indigo-800/35 border border-indigo-400/35 rounded-xl text-xs text-indigo-100 transition-all text-center flex flex-col items-center justify-center gap-1"
-              >
-                <ShieldCheck className="w-3 h-3" />
-                Super Admin
-              </button>
-            </div>
-          </div>
         </motion.div>
       </motion.div>
     </div>

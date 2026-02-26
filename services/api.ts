@@ -95,13 +95,6 @@ export const api = {
     });
   },
 
-  loginAsRole: async (role: UserRole): Promise<User> => {
-    return request<User>("/api/auth/login", {
-      method: "POST",
-      body: { testRole: role }
-    });
-  },
-
   logout: async () => {
     await request<{ success: boolean }>("/api/auth/logout", { method: "POST" });
   },

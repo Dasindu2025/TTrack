@@ -2,8 +2,8 @@ import { encode } from "next-auth/jwt";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { verifyPassword } from "@/lib/password";
-import { authenticateTestRole, authenticateTestUser } from "@/lib/test-auth";
 import { ApiError, jsonError, jsonOk } from "@/lib/http";
+import { ensureDefaultSuperAdmin } from "@/lib/default-super-admin";
 
 const SESSION_MAX_AGE_SECONDS = 60 * 60;
 
@@ -12,35 +12,21 @@ const credentialsSchema = z.object({
   password: z.string().min(8)
 });
 
-const roleLoginSchema = z.object({
-  testRole: z.enum(["SUPER_ADMIN", "COMPANY_ADMIN", "EMPLOYEE"])
-});
-
-const schema = z.union([credentialsSchema, roleLoginSchema]);
-
 export async function POST(req: Request) {
   try {
-    const body = schema.parse(await req.json());
-    let user = null;
+    const body = credentialsSchema.parse(await req.json());
+    await ensureDefaultSuperAdmin(prisma);
 
-    if ("testRole" in body) {
-      user = await authenticateTestRole(prisma, body.testRole);
-    } else {
-      const dbUser = await prisma.user.findUnique({
-        where: { email: body.email.toLowerCase().trim() }
-      });
+    const dbUser = await prisma.user.findUnique({
+      where: { email: body.email.toLowerCase().trim() }
+    });
 
-      user = dbUser;
+    let user = dbUser;
 
-      if (user && user.status === "ACTIVE") {
-        const isValid = await verifyPassword(body.password, user.passwordHash);
-        if (!isValid) {
-          user = null;
-        }
-      }
-
-      if (!user) {
-        user = await authenticateTestUser(prisma, body.email, body.password);
+    if (user && user.status === "ACTIVE") {
+      const isValid = await verifyPassword(body.password, user.passwordHash);
+      if (!isValid) {
+        user = null;
       }
     }
 
