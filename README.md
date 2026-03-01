@@ -107,7 +107,7 @@ Key production note:
 - Frontend Nginx now proxies `/api/*` -> `backend:3061` to avoid `502` from missing API upstream.
 - Backend auto-bootstraps on each start:
   - `prisma migrate deploy`
-  - auto-seed (`AUTO_SEED=true`, idempotent)
+  - optional auto-seed (`AUTO_SEED=false` by default, enable only when required)
   - `next start`
 
 For webhook-style deploy triggers (like `curl -X POST "http://142.91.103.245:9000/?token=SUPER_SECRET_TOKEN"`), make sure your webhook handler runs:
@@ -116,7 +116,7 @@ For webhook-style deploy triggers (like `curl -X POST "http://142.91.103.245:900
 docker compose -f docker-compose.prod.yml up --build -d
 ```
 
-That single command is now enough for pull + migrate + seed + start (no manual seed step).
+That single command is now enough for pull + migrate + start. Seeding only runs when `AUTO_SEED=true`.
 
 ## API Surface
 

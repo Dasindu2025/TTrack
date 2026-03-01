@@ -258,16 +258,21 @@ export const Dashboard = () => {
   for (let i = 1; i <= daysInMonth; i++) days.push(new Date(currentDate.getFullYear(), currentDate.getMonth(), i));
 
   // --- STATS CALCULATION (Employee Specific) ---
-  const now = new Date();
-  const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-  const startOfWeek = new Date(now);
-  startOfWeek.setDate(now.getDate() - now.getDay());
-  const startOfMonthKey = dateKeyFromLocalDate(startOfMonth);
+  const visibleMonthStart = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
+  const visibleMonthEnd = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0);
+  const startOfVisibleMonthKey = dateKeyFromLocalDate(visibleMonthStart);
+  const endOfVisibleMonthKey = dateKeyFromLocalDate(visibleMonthEnd);
+
+  const weekAnchor = new Date();
+  const startOfWeek = new Date(weekAnchor);
+  startOfWeek.setDate(weekAnchor.getDate() - weekAnchor.getDay());
   const startOfWeekKey = dateKeyFromLocalDate(startOfWeek);
 
   const approvedEntries = entries.filter(e => e.status === EntryStatus.APPROVED);
-  const thisMonthApproved = approvedEntries.filter(e => e.date >= startOfMonthKey);
-  const thisWeekApproved = approvedEntries.filter(e => e.date >= startOfWeekKey);
+  const thisMonthApproved = approvedEntries.filter(
+    (e) => e.date >= startOfVisibleMonthKey && e.date <= endOfVisibleMonthKey
+  );
+  const thisWeekApproved = approvedEntries.filter((e) => e.date >= startOfWeekKey);
 
   const totalHoursMonth = thisMonthApproved.reduce((acc, curr) => acc + curr.totalHours, 0);
   const totalHoursWeek = thisWeekApproved.reduce((acc, curr) => acc + curr.totalHours, 0);

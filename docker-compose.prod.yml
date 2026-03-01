@@ -25,7 +25,7 @@ services:
       NEXTAUTH_URL: ${NEXTAUTH_URL:-http://localhost}
       ENABLE_TEST_LOGIN: ${ENABLE_TEST_LOGIN:-true}
       TEST_LOGIN_PASSWORD: ${TEST_LOGIN_PASSWORD:-password123}
-      AUTO_SEED: ${AUTO_SEED:-true}
+      AUTO_SEED: ${AUTO_SEED:-false}
     expose:
       - "3061"
     depends_on:
