@@ -3,7 +3,7 @@ import { Layout } from '../components/Layout';
 import { api } from '../services/api';
 import { TimeEntry, EntryStatus, User } from '../types';
 import { Button } from '../components/ui/Button';
-import { Check, X, Search, Clock, Calendar } from 'lucide-react';
+import { Check, X, Search, Clock, Calendar, Sun, Moon, Trash2 } from 'lucide-react';
 import { formatDate, formatTime, cn } from '../lib/utils';
 import { toast } from 'sonner';
 
@@ -45,6 +45,24 @@ export const Approvals = () => {
       loadData(); // Refresh list to remove processed entry
     } catch (e) {
       toast.error('Action failed');
+    }
+  };
+
+  const handleDelete = async (entry: TimeEntry) => {
+    const confirmed = window.confirm(
+      `Delete this submitted entry for ${formatDate(entry.date)}? This removes the full parent time entry and any midnight splits.`
+    );
+
+    if (!confirmed) {
+      return;
+    }
+
+    try {
+      await api.deleteTimeEntry(entry.id);
+      toast.success('Time entry deleted');
+      loadData();
+    } catch (e: any) {
+      toast.error(e?.message || 'Delete failed');
     }
   };
 
@@ -136,12 +154,14 @@ export const Approvals = () => {
                           <div className="flex gap-2">
                             {entry.eveningHours > 0 && (
                               <span className="px-1.5 py-0.5 rounded bg-orange-900/30 text-orange-300 border border-orange-900/40" title="Evening Hours">
-                                🌅 {entry.eveningHours}h
+                                <Sun className="inline w-3 h-3 mr-1" />
+                                {entry.eveningHours}h
                               </span>
                             )}
                             {entry.nightHours > 0 && (
                               <span className="px-1.5 py-0.5 rounded bg-indigo-900/30 text-indigo-300 border border-indigo-900/40" title="Night Hours">
-                                🌙 {entry.nightHours}h
+                                <Moon className="inline w-3 h-3 mr-1" />
+                                {entry.nightHours}h
                               </span>
                             )}
                           </div>
@@ -151,6 +171,14 @@ export const Approvals = () => {
                         </td>
                         <td className="px-6 py-4 text-right">
                           <div className="flex justify-end gap-2">
+                            <Button
+                              variant="ghost"
+                              className="h-9 w-9 p-0 rounded-full border border-slate-700 text-slate-400 hover:text-rose-300 hover:border-rose-500/50 hover:bg-rose-500/10"
+                              title="Delete"
+                              onClick={() => handleDelete(entry)}
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </Button>
                             <Button 
                               variant="danger" 
                               className="h-9 w-9 p-0 rounded-full border border-red-900/50" 

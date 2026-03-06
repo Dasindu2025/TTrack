@@ -352,6 +352,15 @@ export const api = {
     });
   },
 
+  deleteTimeEntry: async (entryId: string) => {
+    return request<{ deleted: boolean; timeEntryId: string; deletedSplitCount: number }>(
+      `/api/time-entries/${entryId}`,
+      {
+        method: "DELETE"
+      }
+    );
+  },
+
   changePassword: async (userId: string, current: string | undefined, newPass: string) => {
     const body: { newPassword: string; currentPassword?: string } = { newPassword: newPass };
     if (current) {

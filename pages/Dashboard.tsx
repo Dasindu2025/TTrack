@@ -3,7 +3,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { Layout } from '../components/Layout';
 import { api } from '../services/api';
 import { TimeEntry, EntryStatus, Workspace, Project, UserRole, User } from '../types';
-import { Clock, Moon, Sun, CheckCircle, ChevronLeft, ChevronRight, X, Plus, Building2, Users, Check, Activity, Folder } from 'lucide-react';
+import { Clock, Moon, Sun, CheckCircle, ChevronLeft, ChevronRight, X, Plus, Building2, Users, Check, Activity, Folder, Trash2 } from 'lucide-react';
 import { cn, getGreeting, formatTime, formatDate, isValid24HourTime, dateKeyFromLocalDate } from '../lib/utils';
 import { motion } from 'framer-motion';
 import { Button } from '../components/ui/Button';
@@ -171,6 +171,24 @@ export const Dashboard = () => {
       fetchData();
     } catch (e) {
       toast.error('Failed to reject');
+    }
+  };
+
+  const handleQuickDelete = async (entry: TimeEntry) => {
+    const confirmed = window.confirm(
+      `Delete this submitted entry for ${formatDate(entry.date)}? This removes the full parent time entry and any midnight splits.`
+    );
+
+    if (!confirmed) {
+      return;
+    }
+
+    try {
+      await api.deleteTimeEntry(entry.id);
+      toast.success('Entry deleted');
+      fetchData();
+    } catch (e: any) {
+      toast.error(e?.message || 'Failed to delete');
     }
   };
 
@@ -703,6 +721,13 @@ export const Dashboard = () => {
                                        <td className="px-6 py-4 font-bold text-white">{entry.totalHours.toFixed(2)}h</td>
                                        <td className="px-6 py-4 text-right">
                                           <div className="flex justify-end gap-2">
+                                             <button
+                                                onClick={() => handleQuickDelete(entry)}
+                                                className="p-1.5 hover:bg-rose-900/30 text-slate-400 hover:text-rose-400 rounded transition-colors"
+                                                title="Delete"
+                                             >
+                                                <Trash2 className="w-4 h-4" />
+                                             </button>
                                              <button 
                                                 onClick={() => handleQuickReject(entry.id)}
                                                 className="p-1.5 hover:bg-red-900/30 text-slate-400 hover:text-red-400 rounded transition-colors" title="Reject">
