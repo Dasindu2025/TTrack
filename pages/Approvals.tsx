@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Layout } from '../components/Layout';
 import { api } from '../services/api';
-import { TimeEntry, EntryStatus, User } from '../types';
+import { TimeEntry, EntryStatus, User, Project } from '../types';
 import { Button } from '../components/ui/Button';
 import { Check, X, Search, Clock, Calendar, Sun, Moon, Trash2 } from 'lucide-react';
 import { formatDate, formatTime, cn } from '../lib/utils';
@@ -10,24 +10,36 @@ import { toast } from 'sonner';
 export const Approvals = () => {
   const [entries, setEntries] = useState<TimeEntry[]>([]);
   const [employees, setEmployees] = useState<Record<string, User>>({});
+  const [projectsById, setProjectsById] = useState<Record<string, string>>({});
   const [filterUser, setFilterUser] = useState('');
+  const [statusFilter, setStatusFilter] = useState<'ALL' | EntryStatus>('ALL');
   const [loading, setLoading] = useState(true);
   const user = JSON.parse(localStorage.getItem('tyo_user') || '{}');
 
   const loadData = async () => {
     setLoading(true);
     try {
-      // Fetch entries
-      const allEntries = await api.getTimeEntries(undefined, user.companyId);
-      const pending = allEntries.filter(e => e.status === EntryStatus.PENDING);
-      setEntries(pending);
+      const [allEntries, empList, projects] = await Promise.all([
+        api.getTimeEntries(undefined, user.companyId),
+        api.getEmployees(user.companyId),
+        api.getAllCompanyProjects(user.companyId)
+      ]);
 
-      // Fetch employees for accurate names
-      const empList = await api.getEmployees(user.companyId);
+      const sortedEntries = [...allEntries].sort(
+        (a, b) => new Date(b.startTime).getTime() - new Date(a.startTime).getTime()
+      );
+      setEntries(sortedEntries);
+
       const empMap = empList.reduce((acc, curr) => ({ ...acc, [curr.id]: curr }), {} as Record<string, User>);
       setEmployees(empMap);
+
+      const projectMap = projects.reduce((acc, project: Project) => {
+        acc[project.id] = project.name;
+        return acc;
+      }, {} as Record<string, string>);
+      setProjectsById(projectMap);
     } catch (e) {
-      toast.error('Failed to load approval data');
+      toast.error('Failed to load time entries');
     } finally {
       setLoading(false);
     }
@@ -68,16 +80,31 @@ export const Approvals = () => {
 
   const filteredEntries = entries.filter(e => {
     const empName = employees[e.userId]?.name?.toLowerCase() || '';
-    return empName.includes(filterUser.toLowerCase());
+    const statusMatches = statusFilter === 'ALL' || e.status === statusFilter;
+    return empName.includes(filterUser.toLowerCase()) && statusMatches;
   });
+
+  const statusCounts = {
+    all: entries.length,
+    pending: entries.filter((entry) => entry.status === EntryStatus.PENDING).length,
+    approved: entries.filter((entry) => entry.status === EntryStatus.APPROVED).length,
+    rejected: entries.filter((entry) => entry.status === EntryStatus.REJECTED).length
+  };
+
+  const getStatusBadgeClass = (status: EntryStatus) =>
+    status === EntryStatus.APPROVED
+      ? 'bg-emerald-900/30 text-emerald-300 border-emerald-900/50'
+      : status === EntryStatus.REJECTED
+        ? 'bg-red-900/30 text-red-300 border-red-900/50'
+        : 'bg-amber-900/30 text-amber-300 border-amber-900/50';
 
   return (
     <Layout>
       <div className="max-w-6xl mx-auto">
         <header className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
           <div>
-            <h1 className="text-3xl font-bold text-white">Approvals</h1>
-            <p className="text-slate-400">Review and approve employee time entries</p>
+            <h1 className="text-3xl font-bold text-white">Company Time Entries</h1>
+            <p className="text-slate-400">View all entries in your company and manage each record one by one.</p>
           </div>
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 w-4 h-4" />
@@ -91,14 +118,31 @@ export const Approvals = () => {
           </div>
         </header>
 
+        <div className="mb-4 flex flex-wrap gap-2">
+          <Button variant={statusFilter === 'ALL' ? 'primary' : 'outline'} size="sm" onClick={() => setStatusFilter('ALL')}>
+            All ({statusCounts.all})
+          </Button>
+          <Button variant={statusFilter === EntryStatus.PENDING ? 'primary' : 'outline'} size="sm" onClick={() => setStatusFilter(EntryStatus.PENDING)}>
+            Pending ({statusCounts.pending})
+          </Button>
+          <Button variant={statusFilter === EntryStatus.APPROVED ? 'primary' : 'outline'} size="sm" onClick={() => setStatusFilter(EntryStatus.APPROVED)}>
+            Approved ({statusCounts.approved})
+          </Button>
+          <Button variant={statusFilter === EntryStatus.REJECTED ? 'primary' : 'outline'} size="sm" onClick={() => setStatusFilter(EntryStatus.REJECTED)}>
+            Rejected ({statusCounts.rejected})
+          </Button>
+        </div>
+
         <div className="glass-surface panel-lift rounded-xl shadow-sm overflow-hidden">
-          {entries.length === 0 ? (
+          {loading ? (
+            <div className="p-16 text-center text-slate-500">Loading entries...</div>
+          ) : entries.length === 0 ? (
             <div className="p-16 text-center text-slate-500 flex flex-col items-center">
               <div className="w-16 h-16 bg-slate-800 rounded-full flex items-center justify-center mb-4 text-slate-600">
                 <Check className="w-8 h-8" />
               </div>
-              <p className="text-lg font-medium text-slate-300">All caught up!</p>
-              <p className="text-sm">No pending entries to review.</p>
+              <p className="text-lg font-medium text-slate-300">No entries yet</p>
+              <p className="text-sm">There are no submitted entries in this company.</p>
             </div>
           ) : (
             <div className="overflow-x-auto">
@@ -109,6 +153,7 @@ export const Approvals = () => {
                     <th className="px-6 py-4">Date & Time</th>
                     <th className="px-6 py-4">Project</th>
                     <th className="px-6 py-4 text-center">Hrs</th>
+                    <th className="px-6 py-4">Status</th>
                     <th className="px-6 py-4">Details</th>
                     <th className="px-6 py-4 text-right">Actions</th>
                   </tr>
@@ -141,11 +186,16 @@ export const Approvals = () => {
                         </td>
                         <td className="px-6 py-4">
                           <span className="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-medium bg-blue-900/30 text-blue-300 border border-blue-900/50">
-                            {entry.projectId}
+                            {projectsById[entry.projectId] || entry.projectId}
                           </span>
                         </td>
                         <td className="px-6 py-4 text-center">
                           <div className="font-bold text-white text-base">{entry.totalHours}</div>
+                        </td>
+                        <td className="px-6 py-4">
+                          <span className={cn("inline-flex items-center px-2.5 py-1 rounded-md text-xs font-medium border", getStatusBadgeClass(entry.status))}>
+                            {entry.status}
+                          </span>
                         </td>
                         <td className="px-6 py-4 text-xs text-slate-400">
                           {entry.notes && (
@@ -179,22 +229,26 @@ export const Approvals = () => {
                             >
                               <Trash2 className="w-4 h-4" />
                             </Button>
-                            <Button 
-                              variant="danger" 
-                              className="h-9 w-9 p-0 rounded-full border border-red-900/50" 
-                              title="Reject"
-                              onClick={() => handleAction(entry.id, 'REJECT')}
-                            >
-                              <X className="w-4 h-4" />
-                            </Button>
-                            <Button 
-                              variant="primary" 
-                              className="h-9 w-9 p-0 rounded-full bg-emerald-600 hover:bg-emerald-500 border border-emerald-500/50 shadow-lg shadow-emerald-900/20" 
-                              title="Approve"
-                              onClick={() => handleAction(entry.id, 'APPROVE')}
-                            >
-                              <Check className="w-4 h-4" />
-                            </Button>
+                            {entry.status === EntryStatus.PENDING && (
+                              <>
+                                <Button 
+                                  variant="danger" 
+                                  className="h-9 w-9 p-0 rounded-full border border-red-900/50" 
+                                  title="Reject"
+                                  onClick={() => handleAction(entry.id, 'REJECT')}
+                                >
+                                  <X className="w-4 h-4" />
+                                </Button>
+                                <Button 
+                                  variant="primary" 
+                                  className="h-9 w-9 p-0 rounded-full bg-emerald-600 hover:bg-emerald-500 border border-emerald-500/50 shadow-lg shadow-emerald-900/20" 
+                                  title="Approve"
+                                  onClick={() => handleAction(entry.id, 'APPROVE')}
+                                >
+                                  <Check className="w-4 h-4" />
+                                </Button>
+                              </>
+                            )}
                           </div>
                         </td>
                       </tr>
@@ -202,8 +256,8 @@ export const Approvals = () => {
                   })}
                   {filteredEntries.length === 0 && entries.length > 0 && (
                     <tr>
-                      <td colSpan={6} className="text-center py-8 text-slate-500">
-                        No employees found matching "{filterUser}"
+                      <td colSpan={7} className="text-center py-8 text-slate-500">
+                        No time entries found for current filters.
                       </td>
                     </tr>
                   )}

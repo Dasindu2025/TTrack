@@ -10,7 +10,7 @@ export async function DELETE(req: NextRequest, context: { params: Promise<{ id: 
     const session = await requireAuth(req);
 
     if (session.role !== "SUPER_ADMIN" && session.role !== "COMPANY_ADMIN") {
-      throw new ApiError(403, "Only admins can delete employee time entries");
+      throw new ApiError(403, "Only admins can delete company time entries");
     }
 
     const existing = await prisma.timeEntrySplit.findUnique({
@@ -43,10 +43,6 @@ export async function DELETE(req: NextRequest, context: { params: Promise<{ id: 
     }
 
     const tenantId = resolveTenant(session, existing.tenantId);
-
-    if (session.role === "COMPANY_ADMIN" && existing.user.role !== "EMPLOYEE") {
-      throw new ApiError(403, "Company admins can only delete employee time entries");
-    }
 
     const splitCount = await prisma.timeEntrySplit.count({
       where: { timeEntryId: existing.timeEntryId }
